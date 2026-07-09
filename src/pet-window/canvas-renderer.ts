@@ -8,18 +8,7 @@ export interface SpriteSheetMeta {
   loop: boolean;
 }
 
-export type AnimationState =
-  | 'idle'
-  | 'walk'
-  | 'sleep'
-  | 'waking_up'
-  | 'happy'
-  | 'worried'
-  | 'celebrate'
-  | 'typing_focused'
-  | 'eating'
-  | 'consent_ask'
-  | 'bring_me_a_note';
+import type { AnimationState } from '../shared/types';
 
 export const ALL_STATES: AnimationState[] = [
   'idle', 'walk', 'sleep', 'waking_up', 'happy', 'worried',
