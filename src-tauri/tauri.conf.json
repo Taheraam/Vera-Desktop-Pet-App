@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicholasgriffintn/tauri/refs/heads/v2/crates/tauri-config-schema/schema.json",
+  "productName": "VeraPetApp",
+  "version": "0.0.1",
+  "identifier": "com.verapetapp.dev",
+  "build": {
+    "frontendDist": "../src",
+    "devUrl": "http://localhost:1420"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": []
+  },
+  "plugins": {
+    "sql": {
+      "scope": [
+        { "path": "$APPDATA/verapet.db" }
+      ]
+    },
+    "autostart": {
+      "enabled": false,
+      "launchMode": "login"
+    },
+    "window-state": {
+      "enabled": true
+    }
+  }
+}
