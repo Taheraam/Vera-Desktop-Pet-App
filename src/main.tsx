@@ -1,0 +1,1 @@
+// App bootstrap — mounts PetWindow and UtilityWindow into Tauri webviews

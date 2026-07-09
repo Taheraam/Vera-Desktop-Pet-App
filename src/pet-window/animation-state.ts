@@ -1,0 +1,1 @@
+// Animation state machine — idle/walk/sleep/happy/worried/consent_ask/etc.

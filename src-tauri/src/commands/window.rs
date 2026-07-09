@@ -1,0 +1,1 @@
+// Window/OS commands: set_click_through, get_pet_state, set_auto_start, get_monitor_layout

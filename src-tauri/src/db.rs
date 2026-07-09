@@ -1,0 +1,1 @@
+// SQLite connection pool, migrations (tauri-plugin-sql), and WAL mode initialization

@@ -1,0 +1,1 @@
+// Shared TypeScript types — Task, Note, Alarm, PetState, Settings, ProviderStatus, AgentAction, etc.

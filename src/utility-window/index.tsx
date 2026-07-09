@@ -1,0 +1,1 @@
+// Utility Window entry — hidden by default, toggled via hotkey/tray

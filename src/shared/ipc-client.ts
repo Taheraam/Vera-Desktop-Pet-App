@@ -1,0 +1,1 @@
+// Tauri invoke wrapper — typed command/event helpers for all IPC surfaces

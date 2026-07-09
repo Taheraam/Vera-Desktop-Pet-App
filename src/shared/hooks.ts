@@ -1,0 +1,1 @@
+// React hooks for IPC — useTasks, useNotes, useAlarms, usePetState, useSettings, etc.

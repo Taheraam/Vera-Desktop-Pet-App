@@ -1,0 +1,1 @@
+// Pet Window entry — transparent, always-on-top, read-only canvas renderer

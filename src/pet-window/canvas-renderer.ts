@@ -1,0 +1,1 @@
+// Canvas 2D sprite renderer — dirty-rect blitting, frame throttling, DPI scaling

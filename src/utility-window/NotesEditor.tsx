@@ -1,0 +1,1 @@
+// Markdown notes editor — single document, autosave indicator (uses save_note)

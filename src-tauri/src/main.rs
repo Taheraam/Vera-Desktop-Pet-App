@@ -1,0 +1,1 @@
+// Tauri app entry point — sets up plugins, event bus, and window configuration
