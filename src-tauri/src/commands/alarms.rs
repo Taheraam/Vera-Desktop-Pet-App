@@ -28,7 +28,7 @@ pub fn create_alarm(
     let id = conn.last_insert_rowid();
     let alarm = get_alarm_by_id(&conn, id)?;
 
-    app.emit("alarm-created", &alarm)
+    app.emit("alarm-created", serde_json::json!({ "alarm": &alarm }))
         .map_err(|e| e.to_string())?;
     Ok(alarm)
 }
@@ -137,7 +137,7 @@ pub fn get_missed_alarms_summary(app: AppHandle) -> Result<Vec<Alarm>, String> {
 
     // Emit if there are missed alarms
     if !alarms.is_empty() {
-        app.emit("missed-alarms-ready", &alarms)
+        app.emit("missed-alarms-ready", serde_json::json!({ "alarms": &alarms }))
             .map_err(|e| e.to_string())?;
     }
 

@@ -32,7 +32,7 @@ pub fn set_click_through(app: AppHandle, enabled: bool) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    app.emit("pet-state-changed", state)
+    app.emit("pet-state-changed", serde_json::json!({ "state": state }))
         .map_err(|e| e.to_string())?;
     Ok(())
 }

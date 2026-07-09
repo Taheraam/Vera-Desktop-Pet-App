@@ -30,7 +30,7 @@ pub fn create_task(
     let id = conn.last_insert_rowid();
     let task = get_task_by_id(&conn, id)?;
 
-    app.emit("task-created", &task)
+    app.emit("task-created", serde_json::json!({ "task": &task }))
         .map_err(|e| e.to_string())?;
     Ok(task)
 }
@@ -58,7 +58,7 @@ pub fn update_task(
     .map_err(|e| e.to_string())?;
 
     let task = get_task_by_id(&conn, id)?;
-    app.emit("task-updated", &task)
+    app.emit("task-updated", serde_json::json!({ "task": &task }))
         .map_err(|e| e.to_string())?;
     Ok(task)
 }
@@ -73,7 +73,7 @@ pub fn complete_task(app: AppHandle, id: i64) -> Result<Task, String> {
     .map_err(|e| e.to_string())?;
 
     let task = get_task_by_id(&conn, id)?;
-    app.emit("task-completed", &task)
+    app.emit("task-completed", serde_json::json!({ "task": &task }))
         .map_err(|e| e.to_string())?;
     Ok(task)
 }
@@ -85,7 +85,8 @@ pub fn delete_task(app: AppHandle, id: i64) -> Result<(), String> {
     conn.execute("DELETE FROM tasks WHERE id = ?1", rusqlite::params![id])
         .map_err(|e| e.to_string())?;
 
-    app.emit("task-deleted", id).map_err(|e| e.to_string())?;
+    app.emit("task-deleted", serde_json::json!({ "id": id }))
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

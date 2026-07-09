@@ -27,7 +27,7 @@ pub fn save_note(
             )
             .map_err(|e| e.to_string())?;
             let note = get_note_by_id(&conn, note_id)?;
-            app.emit("note-updated", &note)
+            app.emit("note-updated", serde_json::json!({ "note": &note }))
                 .map_err(|e| e.to_string())?;
             Ok(note)
         }
@@ -40,7 +40,7 @@ pub fn save_note(
             .map_err(|e| e.to_string())?;
             let id = conn.last_insert_rowid();
             let note = get_note_by_id(&conn, id)?;
-            app.emit("note-updated", &note)
+            app.emit("note-updated", serde_json::json!({ "note": &note }))
                 .map_err(|e| e.to_string())?;
             Ok(note)
         }
@@ -53,7 +53,7 @@ pub fn delete_note(app: AppHandle, id: i64) -> Result<(), String> {
     conn.execute("DELETE FROM notes WHERE id = ?1", rusqlite::params![id])
         .map_err(|e| e.to_string())?;
 
-    app.emit("note-deleted", id)
+    app.emit("note-deleted", serde_json::json!({ "id": id }))
         .map_err(|e| e.to_string())?;
     Ok(())
 }
