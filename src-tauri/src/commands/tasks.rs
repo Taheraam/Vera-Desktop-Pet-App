@@ -1,4 +1,7 @@
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Emitter, Manager};
+
+use crate::db;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
@@ -11,26 +14,128 @@ pub struct Task {
 }
 
 #[tauri::command]
-pub fn create_task(title: String, notes: Option<String>, due_at: Option<i64>) -> Result<Task, String> {
-    Err("Not yet implemented".into())
+pub fn create_task(
+    app: AppHandle,
+    title: String,
+    notes: Option<String>,
+    due_at: Option<i64>,
+) -> Result<Task, String> {
+    let conn = db::get_connection(&app)?;
+    conn.execute(
+        "INSERT INTO tasks (title, notes, due_at) VALUES (?1, ?2, ?3)",
+        rusqlite::params![title, notes, due_at],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let id = conn.last_insert_rowid();
+    let task = get_task_by_id(&conn, id)?;
+
+    app.emit("task-created", &task)
+        .map_err(|e| e.to_string())?;
+    Ok(task)
 }
 
 #[tauri::command]
-pub fn update_task(id: i64, title: Option<String>, notes: Option<String>, due_at: Option<i64>) -> Result<Task, String> {
-    Err("Not yet implemented".into())
+pub fn update_task(
+    app: AppHandle,
+    id: i64,
+    title: Option<String>,
+    notes: Option<String>,
+    due_at: Option<i64>,
+) -> Result<Task, String> {
+    let conn = db::get_connection(&app)?;
+
+    // Fetch current values, apply overrides
+    let current = get_task_by_id(&conn, id)?;
+    let new_title = title.unwrap_or(current.title);
+    let new_notes = notes.or(current.notes);
+    let new_due_at = due_at.or(current.due_at);
+
+    conn.execute(
+        "UPDATE tasks SET title = ?1, notes = ?2, due_at = ?3 WHERE id = ?4",
+        rusqlite::params![new_title, new_notes, new_due_at, id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let task = get_task_by_id(&conn, id)?;
+    app.emit("task-updated", &task)
+        .map_err(|e| e.to_string())?;
+    Ok(task)
 }
 
 #[tauri::command]
-pub fn complete_task(id: i64) -> Result<Task, String> {
-    Err("Not yet implemented".into())
+pub fn complete_task(app: AppHandle, id: i64) -> Result<Task, String> {
+    let conn = db::get_connection(&app)?;
+    conn.execute(
+        "UPDATE tasks SET completed_at = ?1 WHERE id = ?2",
+        rusqlite::params![db::now(), id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let task = get_task_by_id(&conn, id)?;
+    app.emit("task-completed", &task)
+        .map_err(|e| e.to_string())?;
+    Ok(task)
 }
 
 #[tauri::command]
-pub fn delete_task(id: i64) -> Result<(), String> {
-    Err("Not yet implemented".into())
+pub fn delete_task(app: AppHandle, id: i64) -> Result<(), String> {
+    let conn = db::get_connection(&app)?;
+    // Alarms cascade-delete via FK constraint
+    conn.execute("DELETE FROM tasks WHERE id = ?1", rusqlite::params![id])
+        .map_err(|e| e.to_string())?;
+
+    app.emit("task-deleted", id).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
-pub fn list_tasks(include_completed: Option<bool>) -> Result<Vec<Task>, String> {
-    Err("Not yet implemented".into())
+pub fn list_tasks(
+    app: AppHandle,
+    include_completed: Option<bool>,
+) -> Result<Vec<Task>, String> {
+    let conn = db::get_connection(&app)?;
+    let show_completed = include_completed.unwrap_or(false);
+
+    let mut stmt = if show_completed {
+        conn.prepare("SELECT id, title, notes, due_at, completed_at, created_at FROM tasks ORDER BY created_at DESC")
+    } else {
+        conn.prepare("SELECT id, title, notes, due_at, completed_at, created_at FROM tasks WHERE completed_at IS NULL ORDER BY created_at DESC")
+    }
+    .map_err(|e| e.to_string())?;
+
+    let tasks = stmt
+        .query_map([], |row| {
+            Ok(Task {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                notes: row.get(2)?,
+                due_at: row.get(3)?,
+                completed_at: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(tasks)
+}
+
+fn get_task_by_id(conn: &rusqlite::Connection, id: i64) -> Result<Task, String> {
+    conn.query_row(
+        "SELECT id, title, notes, due_at, completed_at, created_at FROM tasks WHERE id = ?1",
+        rusqlite::params![id],
+        |row| {
+            Ok(Task {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                notes: row.get(2)?,
+                due_at: row.get(3)?,
+                completed_at: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())
 }

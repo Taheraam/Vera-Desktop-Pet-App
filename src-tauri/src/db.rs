@@ -2,6 +2,30 @@ use tauri::{AppHandle, Manager};
 
 const DB_NAME: &str = "verapet.db";
 
+/// Get a connection to the SQLite database.
+pub fn get_connection(app: &AppHandle) -> Result<rusqlite::Connection, String> {
+    let db_path = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join(DB_NAME);
+
+    std::fs::create_dir_all(db_path.parent().unwrap()).map_err(|e| e.to_string())?;
+
+    let conn = rusqlite::Connection::open(&db_path).map_err(|e| e.to_string())?;
+    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
+        .map_err(|e| e.to_string())?;
+    Ok(conn)
+}
+
+/// Current Unix epoch seconds.
+pub fn now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
+}
+
 /// All migrations ordered by version. Each version is an atomic SQL batch.
 /// Use tauri-plugin-sql's migration array — never a single raw init script.
 pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
@@ -78,28 +102,12 @@ pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
 
 /// Seed app_state with last_alive_timestamp on first launch.
 pub fn seed_app_state(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let db_path = app
-        .path()
-        .app_data_dir()
-        .expect("failed to resolve app data dir")
-        .join(DB_NAME);
+    let conn = get_connection(app)?;
 
-    std::fs::create_dir_all(db_path.parent().unwrap())?;
-
-    let conn = rusqlite::Connection::open(&db_path)?;
-    conn.execute_batch("PRAGMA journal_mode=WAL;")?;
     conn.execute(
         "INSERT OR IGNORE INTO app_state (key, value) VALUES ('last_alive_timestamp', ?1)",
-        [chrono_now()],
+        [now()],
     )?;
 
     Ok(())
-}
-
-/// Unix epoch seconds — no external crate needed.
-fn chrono_now() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
 }
