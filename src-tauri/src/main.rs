@@ -5,19 +5,26 @@ use tauri::Manager;
 
 fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_sql::Builder::default().build())
-        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("verapet.db", db::migrations())
+                .build(),
+        )
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .setup(|app| {
-            // Database setup (connection, migrations, seeding)
+            // Seed last_alive_timestamp for missed-alarm catch-up
             let app_handle = app.handle().clone();
-            db::setup_database(&app_handle)?;
+            db::seed_app_state(&app_handle)?;
 
             // Create the pet window (transparent, always-on-top, 64x64)
-            tauri::WindowBuilder::new(
+            tauri::webview::WebviewWindowBuilder::new(
                 app,
                 "pet",
-                tauri::WindowUrl::App("src/pet-window/index.html".into()),
+                tauri::WebviewUrl::App("src/pet-window/index.html".into()),
             )
             .title("VeraPet")
             .inner_size(64.0, 64.0)
@@ -28,10 +35,10 @@ fn run() {
             .build()?;
 
             // Create the utility window (hidden by default)
-            tauri::WindowBuilder::new(
+            tauri::webview::WebviewWindowBuilder::new(
                 app,
                 "utility",
-                tauri::WindowUrl::App("src/utility-window/index.html".into()),
+                tauri::WebviewUrl::App("src/utility-window/index.html".into()),
             )
             .title("VeraPet — Tasks & Notes")
             .inner_size(400.0, 600.0)

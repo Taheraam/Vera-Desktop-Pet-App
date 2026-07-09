@@ -1,11 +1,10 @@
 use tauri::{AppHandle, Manager};
-use tauri_plugin_sql::PluginBuilder;
 
 const DB_NAME: &str = "verapet.db";
 
 /// All migrations ordered by version. Each version is an atomic SQL batch.
 /// Use tauri-plugin-sql's migration array — never a single raw init script.
-fn migrations() -> Vec<tauri_plugin_sql::Migration> {
+pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
     vec![
         // ── v1: core tables (tasks, notes, alarms, app_state) ──
         tauri_plugin_sql::Migration {
@@ -77,17 +76,8 @@ fn migrations() -> Vec<tauri_plugin_sql::Migration> {
     ]
 }
 
-/// Initialize DB on app startup: register plugin, enable WAL, seed app_state.
-pub fn setup_database(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    // Register tauri-plugin-sql with all migrations
-    let plugin = PluginBuilder::default()
-        .add_migrations(DB_NAME, migrations())
-        .build();
-
-    tauri::plugin::Builder::new("sql").setup(app)?;
-    // The plugin is registered in main.rs via .plugin() — here we just seed.
-
-    // Seed last_alive_timestamp so the missed-alarm catch-up query works on first launch.
+/// Seed app_state with last_alive_timestamp on first launch.
+pub fn seed_app_state(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let db_path = app
         .path()
         .app_data_dir()
