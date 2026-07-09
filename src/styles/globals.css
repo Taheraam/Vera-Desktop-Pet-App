@@ -1,1 +1,10 @@
-/* Global reset, base styles, utility classes — no component styles here */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}

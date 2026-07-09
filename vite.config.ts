@@ -6,6 +6,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        pet: 'src/pet-window/index.html',
+        utility: 'src/utility-window/index.html',
+      },
+    },
   },
   server: {
     port: 1420,
