@@ -1,0 +1,14 @@
+# Tauri RUST target outputs (built crates)
+target/
+
+# Cargo cache and lock
+cargo-cache/
+.cargo/registry/
+.cargo/git/
+
+# Generated binaries
+*.exe
+*.dll
+*.so
+*.dylib
+\n

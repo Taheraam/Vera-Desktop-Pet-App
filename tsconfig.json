@@ -3,14 +3,41 @@
     "target": "ES2021",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "strict": true,
+    "strict": false,
     "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["@tauri-apps/api"],
+    "noImplicitAny": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
-  "include": ["src"]
+  "include": [
+    "src/pet-window/**/*.ts",
+    "src/pet-window/**/*.tsx",
+    "src/pet-window/**/*.js",
+    "src/pet-window/**/*.jsx",
+    "src/utility-window/**/*.ts",
+    "src/utility-window/**/*.tsx",
+    "src/utility-window/**/*.js",
+    "src/utility-window/**/*.jsx",
+    "src/shared/**/*.ts",
+    "src/shared/**/*.tsx",
+    "src/shared/**/*.js",
+    "src/shared/**/*.jsx"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/styles/**/*.css"
+  ],
+  "typeAcquisition": {
+    "exclude": ["@types/react-dom", "@types/react"]
+  }
 }

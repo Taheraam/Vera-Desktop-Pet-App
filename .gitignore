@@ -1,38 +1,67 @@
-# --- Rust / Cargo build output ---
-/target/
-**/target/
-src-tauri/target/
-
-# --- Tauri generated artifacts ---
-src-tauri/gen/
-
-# --- Node / npm ---
+# Utilities
 node_modules/
+.dist
+.cache
+
+# Dependencies
+package-lock.json
+
+# Environment variables
+.env
+dotenv*.local
+
+# Build outputs
 dist/
-dist-ssr/
-*.local
+*.log
 
-# --- Runtime database (WAL + sqlite files) ---
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.backup
 
-# --- Editor / IDE ---
-.vscode/*
-!.vscode/extensions.json
+# IDE
 .idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
 
-# --- OS files ---
+# OS
 .DS_Store
+.DS_Store?
+.dS_Store?
+.Icon$
 Thumbs.db
 
-# --- Logs ---
-*.log
+# Node.js
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# --- Coverage ---
+nodefs-counter.txt
 coverage/
+.nyc_output
+
+# OS-specific
+Thumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime data
+*.pid
+
+# Compiled binary dirs
+bin/
+
+# Dependency directories
+lib/
+vendor/
+
+# Optional npm package-lock.json
+package-lock.json
+
+# Yarn v2
+.yarn/cache
+.yarn/hollow
+.yarn/install-state.gz
+.pnp.*
