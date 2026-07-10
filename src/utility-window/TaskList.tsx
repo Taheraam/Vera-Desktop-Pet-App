@@ -33,7 +33,7 @@ export function TaskList() {
 
     unlisteners.push(
       onEvent('task-created', (p) => {
-        setTasks((prev) => [...prev, p.task]);
+        setTasks((prev) => (prev.some((t) => t.id === p.task.id) ? prev : [...prev, p.task]));
       }),
     );
     unlisteners.push(

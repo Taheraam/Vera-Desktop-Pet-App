@@ -50,7 +50,7 @@ export function NotesEditor() {
     const unlisteners: Promise<UnlistenFn>[] = [];
     unlisteners.push(
       onEvent('note-updated', (p) => {
-        setNotes((prev) => prev.map((n) => (n.id === p.note.id ? p.note : n)));
+        setNotes((prev) => (prev.some((n) => n.id === p.note.id) ? prev.map((n) => (n.id === p.note.id ? p.note : n)) : [...prev, p.note]));
         if (p.note.id === activeId) {
           setContent((prev) => {
             if (debounceRef.current) window.clearTimeout(debounceRef.current);

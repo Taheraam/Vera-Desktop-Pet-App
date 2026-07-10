@@ -31,6 +31,7 @@ fn run() {
             .inner_size(64.0, 64.0)
             .transparent(true)
             .decorations(false)
+            .resizable(false)
             .always_on_top(true)
             .skip_taskbar(true)
             .build()?;

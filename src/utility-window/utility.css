@@ -130,20 +130,21 @@ body {
 .tasklist-delete {
   background: none;
   border: none;
-  color: #aaa;
+  color: #999;
   cursor: pointer;
-  font-size: 18px;
-  padding: 0 4px;
+  font-size: 20px;
+  padding: 4px 10px;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 0.15s;
+  border-radius: 4px;
+  visibility: hidden;
 }
 
 .tasklist-item:hover .tasklist-delete {
-  opacity: 1;
+  visibility: visible;
 }
 
 .tasklist-delete:hover {
+  background: #fee;
   color: #c0392b;
 }
 
@@ -228,18 +229,20 @@ body {
 .notes-list-delete {
   background: none;
   border: none;
-  color: #aaa;
+  color: #999;
   cursor: pointer;
-  font-size: 16px;
-  padding: 2px 4px;
-  opacity: 0;
+  font-size: 20px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  visibility: hidden;
 }
 
 .notes-list-item:hover .notes-list-delete {
-  opacity: 1;
+  visibility: visible;
 }
 
 .notes-list-delete:hover {
+  background: #fee;
   color: #c0392b;
 }
 
@@ -400,18 +403,71 @@ body {
 .alarms-delete {
   background: none;
   border: none;
-  color: #aaa;
+  color: #999;
   cursor: pointer;
-  font-size: 18px;
-  padding: 0 4px;
-  opacity: 0;
+  font-size: 20px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  visibility: hidden;
   line-height: 1;
 }
 
 .alarms-item:hover .alarms-delete {
-  opacity: 1;
+  visibility: visible;
 }
 
 .alarms-delete:hover {
+  background: #fee;
   color: #c0392b;
+}
+
+/* Settings */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.settings-panel h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.settings-section h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.settings-row span {
+  flex: 1;
+  font-size: 14px;
+}
+
+.settings-btn {
+  padding: 4px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+}
+
+.settings-btn:hover {
+  background: #efe9df;
+}
+
+.settings-note {
+  font-size: 12px;
+  color: #888;
+  margin: 2px 0 0;
 }

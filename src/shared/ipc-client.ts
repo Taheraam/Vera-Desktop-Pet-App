@@ -22,7 +22,9 @@ export function deleteTask(id: number): Promise<void> {
   return invoke('delete_task', { id });
 }
 export function listTasks(includeCompleted?: boolean): Promise<Task[]> {
-  return invoke('list_tasks', { includeCompleted });
+  const p: Record<string, unknown> = {};
+  if (includeCompleted !== undefined) p.includeCompleted = includeCompleted;
+  return invoke('list_tasks', p);
 }
 
 // ── Notes Commands ───────────────────────────────────────────────────────────
@@ -46,7 +48,9 @@ export function deleteAlarm(id: number): Promise<void> {
   return invoke('delete_alarm', { id });
 }
 export function listAlarms(upcomingOnly?: boolean): Promise<Alarm[]> {
-  return invoke('list_alarms', { upcomingOnly });
+  const p: Record<string, unknown> = {};
+  if (upcomingOnly !== undefined) p.upcomingOnly = upcomingOnly;
+  return invoke('list_alarms', p);
 }
 export function getMissedAlarmsSummary(): Promise<Alarm[]> {
   return invoke('get_missed_alarms_summary');

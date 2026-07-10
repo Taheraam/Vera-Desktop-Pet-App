@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
-import { setClickThrough } from '../shared/ipc-client';
 
 const SPRITES_BASE = '/src/assets/sprites/';
 
@@ -29,10 +28,8 @@ export function PetWindow(): React.ReactElement {
         bridgeRef.current = bridge;
         await bridge.start();
 
-        // Enable click-through after a short idle period
-        setTimeout(() => {
-          setClickThrough(true).catch(() => { /* not critical */ });
-        }, 5000);
+        // Do NOT auto-enable click-through — it prevents window dragging
+        // Click-through will be toggled via hotkey/tray later
       } catch (err) {
         console.error('Pet renderer failed to start:', err);
       }

@@ -4,6 +4,7 @@ import type { Alarm } from '../shared/types';
 import { TaskList } from './TaskList';
 import { NotesEditor } from './NotesEditor';
 import { AlarmModal } from './AlarmModal';
+import { SettingsPanel } from './SettingsPanel';
 import { listAlarms, deleteAlarm, onEvent } from '../shared/ipc-client';
 import './utility.css';
 
@@ -144,7 +145,7 @@ export function UtilityWindow() {
             </ul>
           </div>
         )}
-        {tab === 'settings' && <div className="uw-stub">Settings coming soon.</div>}
+        {tab === 'settings' && <SettingsPanel />}
       </main>
 
       {showAlarm && (
