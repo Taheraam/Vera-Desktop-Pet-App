@@ -1,67 +1,14 @@
-import { useEffect, useState } from 'react';
-import type { UnlistenFn } from '@tauri-apps/api/event';
-import type { Alarm } from '../shared/types';
+import { useState } from 'react';
 import { TaskList } from './TaskList';
 import { NotesEditor } from './NotesEditor';
-import { AlarmModal } from './AlarmModal';
+import { ClockPanel } from './ClockPanel';
 import { SettingsPanel } from './SettingsPanel';
-import { listAlarms, deleteAlarm, onEvent } from '../shared/ipc-client';
 import './utility.css';
 
-type Tab = 'tasks' | 'notes' | 'alarms' | 'settings';
+type Tab = 'tasks' | 'notes' | 'clock' | 'settings';
 
 export function UtilityWindow() {
   const [tab, setTab] = useState<Tab>('tasks');
-  const [showAlarm, setShowAlarm] = useState(false);
-  const [alarms, setAlarms] = useState<Alarm[]>([]);
-  const [missed, setMissed] = useState<Alarm[]>([]);
-  const [alarmError, setAlarmError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    listAlarms(true)
-      .then((data) => {
-        if (active) setAlarms(data);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    const unlisteners: Promise<UnlistenFn>[] = [];
-    unlisteners.push(
-      onEvent('missed-alarms-ready', (p) => {
-        setMissed(p.alarms);
-      }),
-    );
-    unlisteners.push(
-      onEvent('alarm-created', (p) => {
-        setAlarms((prev) => [...prev, p.alarm]);
-      }),
-    );
-    return () => {
-      Promise.all(unlisteners).then((fns) => fns.forEach((fn) => fn()));
-    };
-  }, []);
-
-  const refreshAlarms = () => {
-    listAlarms(true)
-      .then(setAlarms)
-      .catch(() => setAlarmError('Failed to load alarms'));
-  };
-
-  const handleDeleteAlarm = async (id: number) => {
-    try {
-      await deleteAlarm(id);
-      setAlarms((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      setAlarmError('Failed to delete alarm');
-    }
-  };
-
-  const dismissMissed = () => setMissed([]);
 
   return (
     <div className="uw-root">
@@ -79,83 +26,26 @@ export function UtilityWindow() {
           Notes
         </button>
         <button
-          className={tab === 'alarms' ? 'active' : ''}
-          onClick={() => setTab('alarms')}
+          className={tab === 'clock' ? 'active' : ''}
+          onClick={() => setTab('clock')}
         >
-          Alarms
+          Clock
         </button>
         <button
-          className={tab === 'settings' ? 'active' : ''}
+          className={`uw-tab-settings${tab === 'settings' ? ' active' : ''}`}
           onClick={() => setTab('settings')}
+          title="Settings"
         >
-          Settings
+          ⚙
         </button>
-        {tab === 'tasks' && (
-          <button className="uw-add-alarm" onClick={() => setShowAlarm(true)}>
-            + Alarm
-          </button>
-        )}
       </nav>
 
       <main className="uw-content">
         {tab === 'tasks' && <TaskList />}
         {tab === 'notes' && <NotesEditor />}
-        {tab === 'alarms' && (
-          <div className="alarms-tab">
-            {missed.length > 0 && (
-              <div className="missed-summary">
-                <strong>While you were away</strong>
-                <p>{missed.length} alarm{missed.length !== 1 ? 's' : ''} missed.</p>
-                <ul>
-                  {missed.map((a) => (
-                    <li key={a.id}>
-                      Alarm at {new Date(a.fireAt * 1000).toLocaleString()}
-                      {a.taskId !== null && ` (linked to task #${a.taskId})`}
-                    </li>
-                  ))}
-                </ul>
-                <button onClick={dismissMissed}>Dismiss</button>
-              </div>
-            )}
-            <div className="alarms-header">
-              <h3>Upcoming Alarms</h3>
-              <button onClick={() => setShowAlarm(true)}>+ New Alarm</button>
-            </div>
-            {alarmError && <div className="uw-error">{alarmError}</div>}
-            {alarms.length === 0 && !alarmError && (
-              <div className="uw-empty">No upcoming alarms.</div>
-            )}
-            <ul className="alarms-list">
-              {alarms.map((a) => (
-                <li key={a.id} className="alarms-item">
-                  <span>
-                    {new Date(a.fireAt * 1000).toLocaleString()}
-                    {a.taskId !== null && ` (task #${a.taskId})`}
-                    {a.missed ? ' [missed]' : ''}
-                  </span>
-                  <button
-                    className="alarms-delete"
-                    onClick={() => handleDeleteAlarm(a.id)}
-                    title="Delete alarm"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {tab === 'clock' && <ClockPanel />}
         {tab === 'settings' && <SettingsPanel />}
       </main>
-
-      {showAlarm && (
-        <AlarmModal
-          onClose={() => {
-            setShowAlarm(false);
-            refreshAlarms();
-          }}
-        />
-      )}
     </div>
   );
 }

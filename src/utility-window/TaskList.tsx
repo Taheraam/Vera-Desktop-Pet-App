@@ -72,7 +72,8 @@ export function TaskList() {
 
   const handleToggle = async (task: Task) => {
     try {
-      await completeTask(task.id);
+      const updated = await completeTask(task.id);
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) {
       setError(String(err));
     }
@@ -81,6 +82,7 @@ export function TaskList() {
   const handleDelete = async (id: number) => {
     try {
       await deleteTask(id);
+      setTasks((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
       setError(String(err));
     }
@@ -98,7 +100,8 @@ export function TaskList() {
       return;
     }
     try {
-      await updateTask({ id, title });
+      const updated = await updateTask({ id, title });
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       setEditingId(null);
     } catch (err) {
       setError(String(err));

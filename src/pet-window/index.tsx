@@ -65,18 +65,26 @@ export function PetWindow(): React.ReactElement {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       data-tauri-drag-region
       style={{
-        display: 'block',
         position: 'fixed',
         top: 0,
         left: 0,
         width: '100vw',
         height: '100vh',
-        cursor: 'default',
+        cursor: 'grab',
       }}
-    />
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
   );
 }

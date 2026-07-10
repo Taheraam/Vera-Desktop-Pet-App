@@ -476,3 +476,110 @@ body {
   color: #888;
   margin: 2px 0 0;
 }
+
+/* Settings gear tab button */
+.uw-tab-settings {
+  margin-left: auto;
+  font-size: 18px;
+  padding: 4px 10px !important;
+  line-height: 1;
+}
+
+/* Clock panel */
+.clock-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clock-subtabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 6px;
+}
+
+.clock-subtabs button {
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #888;
+}
+
+.clock-subtabs button.active {
+  background: #efe9df;
+  color: #2b2b2b;
+  font-weight: 600;
+}
+
+.clock-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.timer-display {
+  font-size: 48px;
+  font-weight: 200;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  color: #2b2b2b;
+  letter-spacing: 2px;
+}
+
+.timer-done {
+  font-size: 18px;
+  color: #e8765a;
+  font-weight: 600;
+}
+
+.timer-input-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.timer-input-row input {
+  width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.timer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.timer-buttons button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #e8765a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 70px;
+}
+
+.timer-buttons button:disabled {
+  background: #ccc;
+  cursor: default;
+}
+
+.timer-buttons button:last-child {
+  background: #ccc;
+  color: #333;
+}
+
+.timer-buttons button:last-child:hover {
+  background: #bbb;
+}

@@ -124,6 +124,11 @@ export function NotesEditor() {
   const handleDelete = async (id: number) => {
     try {
       await deleteNote(id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+      if (activeId === id) {
+        setActiveId(null);
+        setContent('');
+      }
     } catch {
       setSaveState('error');
     }
