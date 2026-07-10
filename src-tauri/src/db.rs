@@ -101,8 +101,16 @@ pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
 }
 
 /// Seed app_state with last_alive_timestamp on first launch.
+/// Creates the table inline because this runs before tauri-plugin-sql migrations.
 pub fn seed_app_state(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let conn = get_connection(app)?;
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS app_state (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );",
+    )?;
 
     conn.execute(
         "INSERT OR IGNORE INTO app_state (key, value) VALUES ('last_alive_timestamp', ?1)",
