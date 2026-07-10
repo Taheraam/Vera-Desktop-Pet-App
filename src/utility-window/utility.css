@@ -105,6 +105,9 @@ body {
 }
 
 .tasklist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 0;
   border-bottom: 1px solid #eee;
 }
@@ -114,6 +117,43 @@ body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.tasklist-item label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tasklist-delete {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tasklist-item:hover .tasklist-delete {
+  opacity: 1;
+}
+
+.tasklist-delete:hover {
+  color: #c0392b;
+}
+
+.tasklist-edit-input {
+  flex: 1;
+  padding: 2px 4px;
+  border: 1px solid #e8765a;
+  border-radius: 4px;
+  font-size: inherit;
+  font-family: inherit;
 }
 
 /* Notes editor */

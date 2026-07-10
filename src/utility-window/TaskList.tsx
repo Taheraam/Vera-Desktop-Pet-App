@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import type { Task } from '../shared/types';
-import { listTasks, createTask, completeTask, onEvent } from '../shared/ipc-client';
+import { listTasks, createTask, completeTask, updateTask, deleteTask, onEvent } from '../shared/ipc-client';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -26,7 +28,6 @@ export function TaskList() {
     };
   }, []);
 
-  // Update the list immediately from backend events (no refetch)
   useEffect(() => {
     const unlisteners: Promise<UnlistenFn>[] = [];
 
@@ -37,8 +38,12 @@ export function TaskList() {
     );
     unlisteners.push(
       onEvent('task-completed', (p) => {
-        // Default list excludes completed tasks, so drop it from view
         setTasks((prev) => prev.filter((t) => t.id !== p.task.id));
+      }),
+    );
+    unlisteners.push(
+      onEvent('task-updated', (p) => {
+        setTasks((prev) => prev.map((t) => (t.id === p.task.id ? p.task : t)));
       }),
     );
     unlisteners.push(
@@ -68,10 +73,41 @@ export function TaskList() {
   const handleToggle = async (task: Task) => {
     try {
       await completeTask(task.id);
-      // task-completed event removes it from the view
     } catch (err) {
       setError(String(err));
     }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteTask(id);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  const startEdit = (task: Task) => {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+  };
+
+  const saveEdit = async (id: number) => {
+    const title = editTitle.trim();
+    if (!title || editingId === null) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      await updateTask({ id, title });
+      setEditingId(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditTitle('');
   };
 
   if (loading) return <div className="uw-loading">Loading tasks…</div>;
@@ -100,8 +136,30 @@ export function TaskList() {
                 checked={task.completed_at !== null}
                 onChange={() => handleToggle(task)}
               />
-              <span>{task.title}</span>
+              {editingId === task.id ? (
+                <input
+                  type="text"
+                  className="tasklist-edit-input"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={() => saveEdit(task.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit(task.id);
+                    if (e.key === 'Escape') cancelEdit();
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <span onDoubleClick={() => startEdit(task)}>{task.title}</span>
+              )}
             </label>
+            <button
+              className="tasklist-delete"
+              onClick={() => handleDelete(task.id)}
+              title="Delete task"
+            >
+              ×
+            </button>
           </li>
         ))}
       </ul>
