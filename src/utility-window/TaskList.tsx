@@ -13,7 +13,7 @@ export function TaskList() {
 
   useEffect(() => {
     let active = true;
-    listTasks()
+    listTasks(true)
       .then((data) => {
         if (active) setTasks(data);
       })
@@ -38,7 +38,7 @@ export function TaskList() {
     );
     unlisteners.push(
       onEvent('task-completed', (p) => {
-        setTasks((prev) => prev.filter((t) => t.id !== p.task.id));
+        setTasks((prev) => prev.map((t) => (t.id === p.task.id ? p.task : t)));
       }),
     );
     unlisteners.push(
@@ -129,7 +129,10 @@ export function TaskList() {
       <ul className="tasklist-items">
         {tasks.length === 0 && <li className="uw-empty">No tasks yet.</li>}
         {tasks.map((task) => (
-          <li key={task.id} className="tasklist-item">
+          <li
+            key={task.id}
+            className={`tasklist-item${task.completed_at !== null ? ' completed' : ''}`}
+          >
             <label>
               <input
                 type="checkbox"

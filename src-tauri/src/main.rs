@@ -21,6 +21,9 @@ fn run() {
             db::run_migrations(&app_handle)?;
             db::seed_app_state(&app_handle)?;
 
+            // Start the alarm scheduler background thread
+            commands::alarm_scheduler::start(app_handle.clone());
+
             // Create the pet window (transparent, always-on-top, 64x64)
             tauri::webview::WebviewWindowBuilder::new(
                 app,

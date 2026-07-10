@@ -127,6 +127,11 @@ body {
   white-space: nowrap;
 }
 
+.tasklist-item.completed label span {
+  text-decoration: line-through;
+  color: #aaa;
+}
+
 .tasklist-delete {
   background: none;
   border: none;
