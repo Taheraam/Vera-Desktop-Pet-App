@@ -18,12 +18,10 @@ export function NotesEditor() {
   const [content, setContent] = useState('');
   const debounceRef = useRef<number | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
-  const initedRef = useRef(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (initedRef.current) return;
-    initedRef.current = true;
-
+    setLoading(true);
     let active = true;
     listNotes()
       .then(async (all) => {
@@ -36,9 +34,10 @@ export function NotesEditor() {
         setNotes(all);
         setActiveId(all[0].id);
         setContent(all[0].contentMarkdown);
+        setLoading(false);
       })
       .catch(() => {
-        if (active) setSaveState('error');
+        if (active) { setSaveState('error'); setLoading(false); }
       });
 
     return () => {

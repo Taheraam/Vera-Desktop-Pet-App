@@ -114,7 +114,10 @@ export function ClockPanel() {
 }
 
 function TimerSection() {
-  const [totalSec, setTotalSec] = useState(0);
+  const [hours, setHours] = useState(0);
+  const [minutes, setMinutes] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+  const [totalMs, setTotalMs] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<number | null>(null);
@@ -131,22 +134,30 @@ function TimerSection() {
     return clearTimer;
   }, []);
 
+  const recalcTotal = (h: number, m: number, s: number) => {
+    return (h * 3600 + m * 60 + s) * 1000;
+  };
+
   const start = () => {
-    if (remaining <= 0) return;
+    const t = recalcTotal(hours, minutes, seconds);
+    if (t <= 0) return;
+    setTotalMs(t);
+    setRemaining(t);
     doneRef.current = false;
     setRunning(true);
     clearTimer();
+    const startTs = performance.now();
     intervalRef.current = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearTimer();
-          setRunning(false);
-          doneRef.current = true;
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const elapsed = performance.now() - startTs;
+      const left = Math.max(0, t - elapsed);
+      setRemaining(left);
+      if (left <= 0) {
+        clearTimer();
+        setRunning(false);
+        doneRef.current = true;
+        setRemaining(0);
+      }
+    }, 50);
   };
 
   const pause = () => {
@@ -157,36 +168,31 @@ function TimerSection() {
   const reset = () => {
     clearTimer();
     setRunning(false);
-    setRemaining(totalSec);
+    setRemaining(0);
+    setTotalMs(0);
     doneRef.current = false;
   };
 
-  const formatTime = (s: number) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  };
-
-  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Math.max(0, parseInt(e.target.value) || 0);
-    setTotalSec(val);
-    if (!running) setRemaining(val);
+  const formatMs = (ms: number) => {
+    const totalSec = Math.ceil(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
   return (
     <div className="clock-content">
-      <div className="timer-display">{formatTime(remaining)}</div>
+      <div className="timer-display">{formatMs(remaining)}</div>
       {doneRef.current && <div className="timer-done">Time's up!</div>}
       <div className="timer-input-row">
-        <label>
-          Seconds
-          <input type="number" min="0" value={totalSec} onChange={handleInput} disabled={running} />
-        </label>
+        <label>H <input type="number" min="0" value={hours} onChange={(e) => setHours(Math.max(0, parseInt(e.target.value) || 0))} disabled={running} /></label>
+        <label>M <input type="number" min="0" max="59" value={minutes} onChange={(e) => setMinutes(Math.max(0, parseInt(e.target.value) || 0))} disabled={running} /></label>
+        <label>S <input type="number" min="0" max="59" value={seconds} onChange={(e) => setSeconds(Math.max(0, parseInt(e.target.value) || 0))} disabled={running} /></label>
       </div>
       <div className="timer-buttons">
         {!running ? (
-          <button onClick={start} disabled={remaining <= 0}>Start</button>
+          <button onClick={start} disabled={recalcTotal(hours, minutes, seconds) <= 0}>Start</button>
         ) : (
           <button onClick={pause}>Pause</button>
         )}
@@ -197,9 +203,11 @@ function TimerSection() {
 }
 
 function StopwatchSection() {
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const startTsRef = useRef(0);
+  const baseMsRef = useRef(0);
 
   const clearTimer = () => {
     if (intervalRef.current !== null) {
@@ -213,34 +221,43 @@ function StopwatchSection() {
   }, []);
 
   const start = () => {
+    if (running) return;
+    startTsRef.current = performance.now();
     setRunning(true);
     clearTimer();
     intervalRef.current = window.setInterval(() => {
-      setElapsed((prev) => prev + 1);
-    }, 1000);
+      const now = performance.now();
+      const total = baseMsRef.current + (now - startTsRef.current);
+      setElapsedMs(total);
+    }, 10);
   };
 
   const pause = () => {
+    if (!running) return;
     clearTimer();
+    baseMsRef.current = elapsedMs;
     setRunning(false);
   };
 
   const reset = () => {
     clearTimer();
     setRunning(false);
-    setElapsed(0);
+    setElapsedMs(0);
+    baseMsRef.current = 0;
   };
 
-  const formatTime = (s: number) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  const formatMs = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const centis = Math.floor((ms % 1000) / 10);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(centis).padStart(2, '0')}`;
   };
 
   return (
     <div className="clock-content">
-      <div className="timer-display">{formatTime(elapsed)}</div>
+      <div className="timer-display">{formatMs(elapsedMs)}</div>
       <div className="timer-buttons">
         {!running ? (
           <button onClick={start}>Start</button>

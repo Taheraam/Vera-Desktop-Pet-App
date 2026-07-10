@@ -42,7 +42,7 @@ export function UtilityWindow() {
 
       <main className="uw-content">
         {tab === 'tasks' && <TaskList />}
-        {tab === 'notes' && <NotesEditor />}
+        {tab === 'notes' && <NotesEditor key="notes" />}
         {tab === 'clock' && <ClockPanel />}
         {tab === 'settings' && <SettingsPanel />}
       </main>
