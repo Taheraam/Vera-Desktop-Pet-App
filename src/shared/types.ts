@@ -2,54 +2,52 @@ export interface Task {
   id: number;
   title: string;
   notes: string | null;
-  due_at: number | null;
-  completed_at: number | null;
-  created_at: number;
+  dueAt: number | null;
+  completedAt: number | null;
+  createdAt: number;
 }
 
 export interface Note {
   id: number;
-  content_markdown: string;
-  updated_at: number;
+  contentMarkdown: string;
+  updatedAt: number;
 }
 
 export interface Alarm {
   id: number;
-  task_id: number | null;
-  fire_at: number;
-  fired_at: number | null;
+  taskId: number | null;
+  fireAt: number;
+  firedAt: number | null;
   missed: boolean;
 }
 
 export type PetState = 'hidden' | 'idle' | 'interactive';
 
 export interface Monitor {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  name: string;
+  size: [number, number];
+  position: [number, number];
   scaleFactor: number;
 }
 
 export interface Settings {
-  render_engine: 'canvas' | 'webgl';
+  renderEngine: 'canvas' | 'webgl';
   hotkey: string;
-  auto_start_enabled: boolean;
-  context_engine_enabled: boolean;
+  autoStartEnabled: boolean;
+  contextEngineEnabled: boolean;
 }
 
 export type ProviderName = 'openai' | 'anthropic' | 'gemini';
 
 export interface ProviderStatus {
   provider: ProviderName;
-  is_active: boolean;
-  last_verified_at: number | null;
+  isActive: boolean;
+  lastVerifiedAt: number | null;
 }
 
 export interface McpServer {
   name: string;
-  connected_at: number;
+  connectedAt: number;
 }
 
 export type AgentActionStatus =
@@ -62,15 +60,15 @@ export type AgentActionStatus =
 
 export interface AgentAction {
   id: number;
-  delegation_id: string;
-  task_id: number | null;
+  delegationId: string;
+  taskId: number | null;
   provider: string;
-  mcp_server: string;
-  action_type: string;
-  target_summary: string;
+  mcpServer: string;
+  actionType: string;
+  targetSummary: string;
   status: AgentActionStatus;
-  created_at: number;
-  resolved_at: number | null;
+  createdAt: number;
+  resolvedAt: number | null;
 }
 
 export type ContextState = 'coding' | 'browsing' | 'idle' | 'unknown';
@@ -91,81 +89,58 @@ export type AnimationState =
 
 // ── Event payloads (backend → both windows) ─────────────────────────────────
 
-export interface TaskCreatedPayload {
-  task: Task;
-}
-export interface TaskUpdatedPayload {
-  task: Task;
-}
-export interface TaskCompletedPayload {
-  task: Task;
-}
-export interface TaskDeletedPayload {
-  id: number;
-}
-export interface NoteUpdatedPayload {
-  note: Note;
-}
-export interface NoteDeletedPayload {
-  id: number;
-}
-export interface AlarmCreatedPayload {
-  alarm: Alarm;
-}
-export interface AlarmFiredPayload {
-  alarm: Alarm;
-  task: Task | null;
-}
-export interface MissedAlarmsReadyPayload {
-  alarms: Alarm[];
-}
-export interface PetStateChangedPayload {
-  state: PetState;
-}
+export interface TaskCreatedPayload { task: Task; }
+export interface TaskUpdatedPayload { task: Task; }
+export interface TaskCompletedPayload { task: Task; }
+export interface TaskDeletedPayload { id: number; }
+export interface NoteUpdatedPayload { note: Note; }
+export interface NoteDeletedPayload { id: number; }
+export interface AlarmCreatedPayload { alarm: Alarm; }
+export interface AlarmFiredPayload { alarm: Alarm; task: Task | null; }
+export interface MissedAlarmsReadyPayload { alarms: Alarm[]; }
+export interface PetStateChangedPayload { state: PetState; }
 export interface AgentConsentRequestedPayload {
-  delegation_id: string;
-  agent_action_id: number;
-  action_type: string;
-  target_summary: string;
-  mcp_server: string;
+  delegationId: string;
+  agentActionId: number;
+  actionType: string;
+  targetSummary: string;
+  mcpServer: string;
 }
 export interface AgentActionResolvedPayload {
-  delegation_id: string;
-  agent_action_id: number;
+  delegationId: string;
+  agentActionId: number;
   status: string;
   detail?: string;
 }
 export interface DelegationCompletedPayload {
-  delegation_id: string;
-  final_message: string;
+  delegationId: string;
+  finalMessage: string;
 }
-export interface ContextChangedPayload {
-  context: ContextState;
-}
+export interface ContextChangedPayload { context: ContextState; }
 
 // ── Tauri plugin & utility types ─────────────────────────────────────────────
 
 export interface CreateTaskParams extends Record<string, unknown> {
   title: string;
   notes?: string;
-  due_at?: number;
+  dueAt?: number;
 }
 export interface UpdateTaskParams extends Record<string, unknown> {
   id: number;
   title?: string;
   notes?: string;
-  due_at?: number;
+  dueAt?: number;
 }
 export interface AddProviderKeyParams extends Record<string, unknown> {
   provider: ProviderName;
-  api_key: string;
+  apiKey: string;
 }
 export interface DelegateTaskToAgentParams extends Record<string, unknown> {
-  task_id: number;
+  taskId: number;
   instruction: string;
 }
 export interface RespondToConsentRequestParams extends Record<string, unknown> {
-  agent_action_id: number;
+  agentActionId: number;
   approved: boolean;
 }
 export interface IngestDroppedContentParams extends Record<string, unknown> {

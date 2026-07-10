@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::db;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MonitorInfo {
     pub name: String,
     pub size: (u32, u32),
@@ -12,6 +13,7 @@ pub struct MonitorInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub render_engine: String,
     pub hotkey: String,

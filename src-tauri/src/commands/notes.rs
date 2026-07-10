@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::db;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Note {
     pub id: i64,
     pub content_markdown: String,

@@ -131,12 +131,12 @@ export function TaskList() {
         {tasks.map((task) => (
           <li
             key={task.id}
-            className={`tasklist-item${task.completed_at !== null ? ' completed' : ''}`}
+            className={`tasklist-item${task.completedAt !== null ? ' completed' : ''}`}
           >
             <label>
               <input
                 type="checkbox"
-                checked={task.completed_at !== null}
+                checked={task.completedAt !== null}
                 onChange={() => handleToggle(task)}
               />
               {editingId === task.id ? (

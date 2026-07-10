@@ -109,8 +109,8 @@ export function UtilityWindow() {
                 <ul>
                   {missed.map((a) => (
                     <li key={a.id}>
-                      Alarm at {new Date(a.fire_at * 1000).toLocaleString()}
-                      {a.task_id !== null && ` (linked to task #${a.task_id})`}
+                      Alarm at {new Date(a.fireAt * 1000).toLocaleString()}
+                      {a.taskId !== null && ` (linked to task #${a.taskId})`}
                     </li>
                   ))}
                 </ul>
@@ -129,8 +129,8 @@ export function UtilityWindow() {
               {alarms.map((a) => (
                 <li key={a.id} className="alarms-item">
                   <span>
-                    {new Date(a.fire_at * 1000).toLocaleString()}
-                    {a.task_id !== null && ` (task #${a.task_id})`}
+                    {new Date(a.fireAt * 1000).toLocaleString()}
+                    {a.taskId !== null && ` (task #${a.taskId})`}
                     {a.missed ? ' [missed]' : ''}
                   </span>
                   <button

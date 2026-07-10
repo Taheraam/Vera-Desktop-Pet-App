@@ -8,7 +8,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 const DEBOUNCE_MS = 1000;
 
 function noteTitle(n: Note): string {
-  const first = n.content_markdown.split('\n')[0].replace(/^#+\s*/, '').trim();
+  const first = n.contentMarkdown.split('\n')[0].replace(/^#+\s*/, '').trim();
   return first || 'Untitled';
 }
 
@@ -35,7 +35,7 @@ export function NotesEditor() {
         }
         setNotes(all);
         setActiveId(all[0].id);
-        setContent(all[0].content_markdown);
+        setContent(all[0].contentMarkdown);
       })
       .catch(() => {
         if (active) setSaveState('error');
@@ -56,7 +56,7 @@ export function NotesEditor() {
             if (debounceRef.current) window.clearTimeout(debounceRef.current);
             return prev;
           });
-          setContent(p.note.content_markdown);
+          setContent(p.note.contentMarkdown);
         }
       }),
     );
@@ -86,7 +86,7 @@ export function NotesEditor() {
     const note = notes.find((n) => n.id === id);
     if (!note) return;
     setActiveId(id);
-    setContent(note.content_markdown);
+    setContent(note.contentMarkdown);
     setSaveState('idle');
   };
 

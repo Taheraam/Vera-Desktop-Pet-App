@@ -97,7 +97,7 @@ export function connectMcpServer(p: { name: string; config: object }): Promise<M
 export function disconnectMcpServer(name: string): Promise<void> {
   return invoke('disconnect_mcp_server', { name });
 }
-export function delegateTaskToAgent(p: { taskId: number; instruction: string }): Promise<{ delegation_id: string }> {
+export function delegateTaskToAgent(p: { taskId: number; instruction: string }): Promise<{ delegationId: string }> {
   return invoke('delegate_task_to_agent', p);
 }
 export function respondToConsentRequest(p: { agentActionId: number; approved: boolean }): Promise<void> {
@@ -121,7 +121,7 @@ export function getCurrentContext(): Promise<ContextState> {
 
 // ── Drag-and-Drop Commands ───────────────────────────────────────────────────
 
-export function ingestDroppedContent(p: IngestDroppedContentParams): Promise<{ note_id: number }> {
+export function ingestDroppedContent(p: IngestDroppedContentParams): Promise<{ noteId: number }> {
   return invoke('ingest_dropped_content', p);
 }
 
@@ -156,19 +156,19 @@ type EventPayloadMap = {
   'fullscreen-detected': Record<string, never>;
   'fullscreen-cleared': Record<string, never>;
   'agent-consent-requested': {
-    delegation_id: string;
-    agent_action_id: number;
-    action_type: string;
-    target_summary: string;
-    mcp_server: string;
+    delegationId: string;
+    agentActionId: number;
+    actionType: string;
+    targetSummary: string;
+    mcpServer: string;
   };
   'agent-action-resolved': {
-    delegation_id: string;
-    agent_action_id: number;
+    delegationId: string;
+    agentActionId: number;
     status: string;
     detail?: string;
   };
-  'delegation-completed': { delegation_id: string; final_message: string };
+  'delegation-completed': { delegationId: string; finalMessage: string };
   'context-changed': { context: ContextState };
 };
 

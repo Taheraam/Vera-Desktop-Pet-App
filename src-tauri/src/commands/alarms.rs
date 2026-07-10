@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::db;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Alarm {
     pub id: i64,
     pub task_id: Option<i64>,
