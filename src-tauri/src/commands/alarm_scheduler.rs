@@ -4,11 +4,12 @@ use tauri::{AppHandle, Emitter};
 use crate::db;
 
 /// Start the alarm scheduler background thread.
-/// Polls for due alarms every 30 seconds and fires `alarm-fired` events.
+/// Polls for due alarms every 10 seconds.
 pub fn start(app: AppHandle) {
     std::thread::spawn(move || {
         loop {
-            std::thread::sleep(Duration::from_secs(30));
+            // Check for due alarms every 10 seconds
+            std::thread::sleep(Duration::from_secs(10));
             if let Err(e) = fire_due_alarms(&app) {
                 eprintln!("[alarm_scheduler] error: {e}");
             }

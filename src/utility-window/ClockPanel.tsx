@@ -4,10 +4,10 @@ import type { Alarm } from '../shared/types';
 import { AlarmModal } from './AlarmModal';
 import { listAlarms, deleteAlarm, onEvent } from '../shared/ipc-client';
 
-type ClockTab = 'alarm' | 'timer' | 'stopwatch';
+type ClockTab = 'reminder' | 'timer' | 'stopwatch';
 
 export function ClockPanel() {
-  const [tab, setTab] = useState<ClockTab>('alarm');
+  const [tab, setTab] = useState<ClockTab>('reminder');
   const [showModal, setShowModal] = useState(false);
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [missed, setMissed] = useState<Alarm[]>([]);
@@ -60,28 +60,30 @@ export function ClockPanel() {
 
   return (
     <div className="clock-panel">
+      {ringing !== null && (
+        <div className="alarm-ringing">
+          <span>⏰ Reminder — {ringing.label}</span>
+          <button onClick={() => setRinging(null)}>Dismiss</button>
+        </div>
+      )}
+
       <div className="clock-subtabs">
-        <button className={tab === 'alarm' ? 'active' : ''} onClick={() => setTab('alarm')}>Alarm</button>
+        <button className={tab === 'reminder' ? 'active' : ''} onClick={() => setTab('reminder')}>Reminder</button>
         <button className={tab === 'timer' ? 'active' : ''} onClick={() => setTab('timer')}>Timer</button>
         <button className={tab === 'stopwatch' ? 'active' : ''} onClick={() => setTab('stopwatch')}>Stopwatch</button>
       </div>
 
-      {tab === 'alarm' && (
+      {/* Reminder section — always mounted, hidden via CSS to preserve state */}
+      <div className={`clock-section${tab === 'reminder' ? ' active' : ''}`}>
         <div className="clock-content">
-          {ringing !== null && (
-            <div className="alarm-ringing">
-              <span>⏰ Alarm — {ringing.label}</span>
-              <button onClick={() => setRinging(null)}>Dismiss</button>
-            </div>
-          )}
           {missed.length > 0 && (
             <div className="missed-summary">
               <strong>While you were away</strong>
-              <p>{missed.length} alarm{missed.length !== 1 ? 's' : ''} missed.</p>
+              <p>{missed.length} reminder{missed.length !== 1 ? 's' : ''} missed.</p>
               <ul>
                 {missed.map((a) => (
                   <li key={a.id}>
-                    Alarm at {new Date(a.fireAt * 1000).toLocaleString()}
+                    Reminder at {new Date(a.fireAt * 1000).toLocaleString()}
                     {a.taskId !== null && ` (linked to task #${a.taskId})`}
                   </li>
                 ))}
@@ -90,12 +92,12 @@ export function ClockPanel() {
             </div>
           )}
           <div className="alarms-header">
-            <h3>Alarms</h3>
-            <button onClick={() => setShowModal(true)}>+ New Alarm</button>
+            <h3>Reminders</h3>
+            <button onClick={() => setShowModal(true)}>+ New Reminder</button>
           </div>
           {alarmError && <div className="uw-error">{alarmError}</div>}
           {alarms.length === 0 && !alarmError && (
-            <div className="uw-empty">No alarms.</div>
+            <div className="uw-empty">No reminders.</div>
           )}
           <ul className="alarms-list">
             {alarms.map((a) => (
@@ -106,15 +108,22 @@ export function ClockPanel() {
                   {a.missed ? ' [missed]' : ''}
                   {a.firedAt !== null ? ' [fired]' : ''}
                 </span>
-                <button className="alarms-delete" onClick={() => handleDeleteAlarm(a.id)} title="Delete alarm">×</button>
+                <button className="alarms-delete" onClick={() => handleDeleteAlarm(a.id)} title="Delete reminder">×</button>
               </li>
             ))}
           </ul>
         </div>
-      )}
+      </div>
 
-      {tab === 'timer' && <TimerSection />}
-      {tab === 'stopwatch' && <StopwatchSection />}
+      {/* Timer section — always mounted */}
+      <div className={`clock-section${tab === 'timer' ? ' active' : ''}`}>
+        <TimerSection />
+      </div>
+
+      {/* Stopwatch section — always mounted */}
+      <div className={`clock-section${tab === 'stopwatch' ? ' active' : ''}`}>
+        <StopwatchSection />
+      </div>
 
       {showModal && (
         <AlarmModal
@@ -132,42 +141,38 @@ function TimerSection() {
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
   const [seconds, setSeconds] = useState(0);
-  const [totalMs, setTotalMs] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const doneRef = useRef(false);
-
-  const clearTimer = () => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+  const startTsRef = useRef(0);
+  const totalMsRef = useRef(0);
 
   useEffect(() => {
-    return clearTimer;
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    };
   }, []);
 
-  const recalcTotal = (h: number, m: number, s: number) => {
-    return (h * 3600 + m * 60 + s) * 1000;
-  };
+  const recalcTotal = (h: number, m: number, s: number) =>
+    (h * 3600 + m * 60 + s) * 1000;
 
   const start = () => {
     const t = recalcTotal(hours, minutes, seconds);
     if (t <= 0) return;
-    setTotalMs(t);
+    totalMsRef.current = t;
     setRemaining(t);
     doneRef.current = false;
     setRunning(true);
-    clearTimer();
-    const startTs = performance.now();
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    startTsRef.current = performance.now();
     intervalRef.current = window.setInterval(() => {
-      const elapsed = performance.now() - startTs;
-      const left = Math.max(0, t - elapsed);
+      const elapsed = performance.now() - startTsRef.current;
+      const left = Math.max(0, totalMsRef.current - elapsed);
       setRemaining(left);
       if (left <= 0) {
-        clearTimer();
+        if (intervalRef.current !== null) clearInterval(intervalRef.current);
+        intervalRef.current = null;
         setRunning(false);
         doneRef.current = true;
         setRemaining(0);
@@ -176,15 +181,17 @@ function TimerSection() {
   };
 
   const pause = () => {
-    clearTimer();
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    intervalRef.current = null;
     setRunning(false);
   };
 
   const reset = () => {
-    clearTimer();
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    intervalRef.current = null;
     setRunning(false);
     setRemaining(0);
-    setTotalMs(0);
+    totalMsRef.current = 0;
     doneRef.current = false;
   };
 
@@ -224,38 +231,34 @@ function StopwatchSection() {
   const startTsRef = useRef(0);
   const baseMsRef = useRef(0);
 
-  const clearTimer = () => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
-
   useEffect(() => {
-    return clearTimer;
+    return () => {
+      if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    };
   }, []);
 
   const start = () => {
     if (running) return;
     startTsRef.current = performance.now();
     setRunning(true);
-    clearTimer();
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
     intervalRef.current = window.setInterval(() => {
-      const now = performance.now();
-      const total = baseMsRef.current + (now - startTsRef.current);
+      const total = baseMsRef.current + (performance.now() - startTsRef.current);
       setElapsedMs(total);
     }, 10);
   };
 
   const pause = () => {
     if (!running) return;
-    clearTimer();
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    intervalRef.current = null;
     baseMsRef.current = elapsedMs;
     setRunning(false);
   };
 
   const reset = () => {
-    clearTimer();
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    intervalRef.current = null;
     setRunning(false);
     setElapsedMs(0);
     baseMsRef.current = 0;

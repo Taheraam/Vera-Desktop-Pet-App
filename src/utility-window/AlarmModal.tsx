@@ -44,7 +44,7 @@ export function AlarmModal({ onClose }: AlarmModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>New Alarm</h3>
+        <h3>New Reminder</h3>
         {error && <div className="uw-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <label>
@@ -76,7 +76,7 @@ export function AlarmModal({ onClose }: AlarmModalProps) {
             <button type="button" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit">Create</button>
+            <button type="submit">Set Reminder</button>
           </div>
         </form>
       </div>

@@ -521,6 +521,14 @@ body {
   gap: 12px;
 }
 
+.clock-section {
+  display: none;
+}
+
+.clock-section.active {
+  display: block;
+}
+
 .clock-subtabs {
   display: flex;
   gap: 4px;
