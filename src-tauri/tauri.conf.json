@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "identifier": "com.verapetapp.dev",
   "build": {
+    "beforeDevCommand": "npm run dev",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
