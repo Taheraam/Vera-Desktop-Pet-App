@@ -12,6 +12,7 @@ export function ClockPanel() {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [missed, setMissed] = useState<Alarm[]>([]);
   const [alarmError, setAlarmError] = useState<string | null>(null);
+  const [ringing, setRinging] = useState<{ id: number; label: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -28,6 +29,14 @@ export function ClockPanel() {
     );
     unlisteners.push(
       onEvent('alarm-created', (p) => setAlarms((prev) => [...prev, p.alarm])),
+    );
+    unlisteners.push(
+      onEvent('alarm-fired', (p) => {
+        setRinging({
+          id: p.alarm.id,
+          label: new Date(p.alarm.fireAt * 1000).toLocaleString(),
+        });
+      }),
     );
     return () => {
       Promise.all(unlisteners).then((fns) => fns.forEach((fn) => fn()));
@@ -59,6 +68,12 @@ export function ClockPanel() {
 
       {tab === 'alarm' && (
         <div className="clock-content">
+          {ringing !== null && (
+            <div className="alarm-ringing">
+              <span>⏰ Alarm — {ringing.label}</span>
+              <button onClick={() => setRinging(null)}>Dismiss</button>
+            </div>
+          )}
           {missed.length > 0 && (
             <div className="missed-summary">
               <strong>While you were away</strong>

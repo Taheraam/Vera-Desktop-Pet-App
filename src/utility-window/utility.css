@@ -334,6 +334,35 @@ body {
   gap: 12px;
 }
 
+.alarm-ringing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #856404;
+  width: 100%;
+}
+
+.alarm-ringing button {
+  padding: 4px 10px;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  background: #fff;
+  color: #856404;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.alarm-ringing button:hover {
+  background: #ffc107;
+  color: #fff;
+}
+
 .missed-summary {
   background: #fef0ea;
   border: 1px solid #e8765a;
