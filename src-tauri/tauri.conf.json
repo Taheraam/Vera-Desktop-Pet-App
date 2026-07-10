@@ -17,12 +17,6 @@
       "scope": [
         { "path": "$APPDATA/verapet.db" }
       ]
-    },
-    "autostart": {
-      "enabled": false
-    },
-    "window-state": {
-      "enabled": true
     }
   }
 }
