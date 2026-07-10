@@ -19,8 +19,7 @@
       ]
     },
     "autostart": {
-      "enabled": false,
-      "launchMode": "login"
+      "enabled": false
     },
     "window-state": {
       "enabled": true
