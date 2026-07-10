@@ -71,9 +71,12 @@ export function PetWindow(): React.ReactElement {
   }, []);
 
   const onPointerDown = async (e: React.PointerEvent) => {
+    // Only drag on right-click (button === 2)
+    if (e.button !== 2) return;
     try {
       const win = getCurrentWindow();
       const pos = await win.outerPosition();
+      console.log('Drag start at window pos', pos.x, pos.y);
       dragRef.current = {
         startX: e.clientX,
         startY: e.clientY,
@@ -90,6 +93,11 @@ export function PetWindow(): React.ReactElement {
   const onPointerMove = async (e: React.PointerEvent) => {
     const d = dragRef.current;
     if (!d.dragging) return;
+    // Only move while right button is held (buttons & 2)
+    if (!(e.buttons & 2)) {
+      d.dragging = false;
+      return;
+    }
     try {
       const dx = e.clientX - d.startX;
       const dy = e.clientY - d.startY;
@@ -99,8 +107,16 @@ export function PetWindow(): React.ReactElement {
     }
   };
 
-  const onPointerUp = () => {
-    dragRef.current.dragging = false;
+  const onPointerUp = (e: React.PointerEvent) => {
+    // Only stop drag on right-button release
+    if (e.button === 2) {
+      dragRef.current.dragging = false;
+    }
+  };
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    // Prevent browser context menu on right-click
+    e.preventDefault();
   };
 
   return (
@@ -108,6 +124,7 @@ export function PetWindow(): React.ReactElement {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onContextMenu={onContextMenu}
       style={{
         position: 'fixed',
         top: 0,
