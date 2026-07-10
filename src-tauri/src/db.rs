@@ -100,8 +100,19 @@ pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
     ]
 }
 
+/// Run all migrations inline using rusqlite (not tauri-plugin-sql).
+/// Needed because tauri-plugin-sql only applies migrations when the frontend
+/// opens a DB connection through its JS API, but the backend accesses the DB
+/// directly via rusqlite and needs the tables to exist immediately.
+pub fn run_migrations(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = get_connection(app)?;
+    for migration in migrations() {
+        conn.execute_batch(&migration.sql)?;
+    }
+    Ok(())
+}
+
 /// Seed app_state with last_alive_timestamp on first launch.
-/// Creates the table inline because this runs before tauri-plugin-sql migrations.
 pub fn seed_app_state(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let conn = get_connection(app)?;
 

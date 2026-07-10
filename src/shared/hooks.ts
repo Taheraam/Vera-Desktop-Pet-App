@@ -81,7 +81,7 @@ export function useNotes(): {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  handleSave: (p: { id?: number; content_markdown: string }) => Promise<Note>;
+  handleSave: (p: { id?: number; contentMarkdown: string }) => Promise<Note>;
   handleDelete: (id: number) => Promise<void>;
 } {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -114,7 +114,7 @@ export function useNotes(): {
     return () => { Promise.all(unlisteners).then((fns) => fns.forEach((fn) => fn())); };
   }, [refresh]);
 
-  const handleSave = useCallback(async (p: { id?: number; content_markdown: string }) => {
+  const handleSave = useCallback(async (p: { id?: number; contentMarkdown: string }) => {
     const note = await saveNote(p);
     await refresh();
     return note;
@@ -130,12 +130,12 @@ export function useNotes(): {
 
 // ── Alarm Hooks ──────────────────────────────────────────────────────────────
 
-export function useAlarms(upcoming_only = true): {
+export function useAlarms(upcomingOnly = true): {
   alarms: Alarm[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  handleCreate: (p: { task_id?: number; fire_at: number }) => Promise<Alarm>;
+  handleCreate: (p: { taskId?: number; fireAt: number }) => Promise<Alarm>;
   handleDelete: (id: number) => Promise<void>;
 } {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
@@ -145,7 +145,7 @@ export function useAlarms(upcoming_only = true): {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await listAlarms(upcoming_only);
+      const data = await listAlarms(upcomingOnly);
       setAlarms(data);
       setError(null);
     } catch (e) {
@@ -153,7 +153,7 @@ export function useAlarms(upcoming_only = true): {
     } finally {
       setLoading(false);
     }
-  }, [upcoming_only]);
+  }, [upcomingOnly]);
 
   useEffect(() => {
     refresh();
@@ -168,7 +168,7 @@ export function useAlarms(upcoming_only = true): {
     return () => { Promise.all(unlisteners).then((fns) => fns.forEach((fn) => fn())); };
   }, [refresh]);
 
-  const handleCreate = useCallback(async (p: { task_id?: number; fire_at: number }) => {
+  const handleCreate = useCallback(async (p: { taskId?: number; fireAt: number }) => {
     const alarm = await createAlarm(p);
     await refresh();
     return alarm;

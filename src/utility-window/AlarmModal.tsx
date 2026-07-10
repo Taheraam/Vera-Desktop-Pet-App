@@ -32,8 +32,8 @@ export function AlarmModal({ onClose }: AlarmModalProps) {
     try {
       await createAlarm(
         taskId === ''
-          ? { fire_at: fireAt }
-          : { fire_at: fireAt, task_id: Number(taskId) },
+          ? { fireAt }
+          : { fireAt, taskId: Number(taskId) },
       );
       onClose();
     } catch (err) {

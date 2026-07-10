@@ -29,7 +29,7 @@ export function NotesEditor() {
       .then(async (all) => {
         if (!active) return;
         if (all.length === 0) {
-          const created = await saveNote({ content_markdown: '' });
+          const created = await saveNote({ contentMarkdown: '' });
           if (!active) return;
           all = [created];
         }
@@ -100,7 +100,7 @@ export function NotesEditor() {
         return;
       }
       try {
-        const updated = await saveNote({ id: activeId, content_markdown: value });
+        const updated = await saveNote({ id: activeId, contentMarkdown: value });
         setSaveState('saved');
         setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
       } catch {
@@ -111,7 +111,7 @@ export function NotesEditor() {
 
   const handleNew = async () => {
     try {
-      const created = await saveNote({ content_markdown: '' });
+      const created = await saveNote({ contentMarkdown: '' });
       setNotes((prev) => [...prev, created]);
       setActiveId(created.id);
       setContent('');

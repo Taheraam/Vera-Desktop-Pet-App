@@ -16,8 +16,9 @@ fn run() {
         ))
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .setup(|app| {
-            // Seed last_alive_timestamp for missed-alarm catch-up
+            // Run migrations then seed last_alive_timestamp
             let app_handle = app.handle().clone();
+            db::run_migrations(&app_handle)?;
             db::seed_app_state(&app_handle)?;
 
             // Create the pet window (transparent, always-on-top, 64x64)

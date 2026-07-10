@@ -3,8 +3,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   Task, Note, Alarm, PetState, Monitor, Settings,
   ProviderStatus, McpServer, AgentAction, ContextState,
-  CreateTaskParams, UpdateTaskParams, AddProviderKeyParams,
-  DelegateTaskToAgentParams, RespondToConsentRequestParams,
+  CreateTaskParams, UpdateTaskParams,
   IngestDroppedContentParams,
 } from './types';
 
@@ -22,13 +21,13 @@ export function completeTask(id: number): Promise<Task> {
 export function deleteTask(id: number): Promise<void> {
   return invoke('delete_task', { id });
 }
-export function listTasks(include_completed?: boolean): Promise<Task[]> {
-  return invoke('list_tasks', { include_completed });
+export function listTasks(includeCompleted?: boolean): Promise<Task[]> {
+  return invoke('list_tasks', { includeCompleted });
 }
 
 // ── Notes Commands ───────────────────────────────────────────────────────────
 
-export function saveNote(p: { id?: number; content_markdown: string }): Promise<Note> {
+export function saveNote(p: { id?: number; contentMarkdown: string }): Promise<Note> {
   return invoke('save_note', p);
 }
 export function deleteNote(id: number): Promise<void> {
@@ -40,14 +39,14 @@ export function listNotes(): Promise<Note[]> {
 
 // ── Alarm Commands ───────────────────────────────────────────────────────────
 
-export function createAlarm(p: { task_id?: number; fire_at: number }): Promise<Alarm> {
+export function createAlarm(p: { taskId?: number; fireAt: number }): Promise<Alarm> {
   return invoke('create_alarm', p);
 }
 export function deleteAlarm(id: number): Promise<void> {
   return invoke('delete_alarm', { id });
 }
-export function listAlarms(upcoming_only?: boolean): Promise<Alarm[]> {
-  return invoke('list_alarms', { upcoming_only });
+export function listAlarms(upcomingOnly?: boolean): Promise<Alarm[]> {
+  return invoke('list_alarms', { upcomingOnly });
 }
 export function getMissedAlarmsSummary(): Promise<Alarm[]> {
   return invoke('get_missed_alarms_summary');
@@ -70,7 +69,7 @@ export function getMonitorLayout(): Promise<Monitor[]> {
 
 // ── AI Provider & MCP Agent Commands ─────────────────────────────────────────
 
-export function addProviderKey(p: AddProviderKeyParams): Promise<void> {
+export function addProviderKey(p: { provider: string; apiKey: string }): Promise<void> {
   return invoke('add_provider_key', p);
 }
 export function removeProviderKey(provider: string): Promise<void> {
@@ -94,10 +93,10 @@ export function connectMcpServer(p: { name: string; config: object }): Promise<M
 export function disconnectMcpServer(name: string): Promise<void> {
   return invoke('disconnect_mcp_server', { name });
 }
-export function delegateTaskToAgent(p: DelegateTaskToAgentParams): Promise<{ delegation_id: string }> {
+export function delegateTaskToAgent(p: { taskId: number; instruction: string }): Promise<{ delegation_id: string }> {
   return invoke('delegate_task_to_agent', p);
 }
-export function respondToConsentRequest(p: RespondToConsentRequestParams): Promise<void> {
+export function respondToConsentRequest(p: { agentActionId: number; approved: boolean }): Promise<void> {
   return invoke('respond_to_consent_request', p);
 }
 export function listAgentActions(limit?: number): Promise<AgentAction[]> {

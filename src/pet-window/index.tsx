@@ -70,6 +70,7 @@ export function PetWindow(): React.ReactElement {
   return (
     <canvas
       ref={canvasRef}
+      data-tauri-drag-region
       style={{
         display: 'block',
         position: 'fixed',
