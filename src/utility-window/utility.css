@@ -159,8 +159,95 @@ body {
 /* Notes editor */
 .notes-editor {
   display: flex;
-  flex-direction: column;
+  gap: 12px;
   height: 100%;
+}
+
+.notes-sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-new-btn {
+  padding: 6px 10px;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: #e8765a;
+  text-align: center;
+}
+
+.notes-new-btn:hover {
+  background: #fef0ea;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notes-list-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.notes-list-title {
+  flex: 1;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  color: #2b2b2b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notes-list-title:hover {
+  background: #efe9df;
+}
+
+.notes-list-item.active .notes-list-title {
+  background: #e8765a;
+  color: #fff;
+}
+
+.notes-list-delete {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 4px;
+  opacity: 0;
+}
+
+.notes-list-item:hover .notes-list-delete {
+  opacity: 1;
+}
+
+.notes-list-delete:hover {
+  color: #c0392b;
+}
+
+.notes-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .notes-save-state {
