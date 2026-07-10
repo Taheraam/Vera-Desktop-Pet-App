@@ -318,3 +318,100 @@ body {
   background: #ccc;
   color: #333;
 }
+
+/* Alarms tab */
+.alarms-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.missed-summary {
+  background: #fef0ea;
+  border: 1px solid #e8765a;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.missed-summary strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #c0392b;
+}
+
+.missed-summary ul {
+  margin: 8px 0;
+  padding-left: 16px;
+}
+
+.missed-summary button {
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1px solid #e8765a;
+  border-radius: 4px;
+  background: #fff;
+  color: #e8765a;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.missed-summary button:hover {
+  background: #e8765a;
+  color: #fff;
+}
+
+.alarms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alarms-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.alarms-header button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #e8765a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.alarms-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.alarms-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.alarms-delete {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  opacity: 0;
+  line-height: 1;
+}
+
+.alarms-item:hover .alarms-delete {
+  opacity: 1;
+}
+
+.alarms-delete:hover {
+  color: #c0392b;
+}
