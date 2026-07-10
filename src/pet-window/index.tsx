@@ -64,9 +64,18 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
+  const onPointerDown = async (e: React.PointerEvent) => {
+    // Call startDragging to initiate window drag
+    try {
+      await getCurrentWindow().startDragging();
+    } catch {
+      // Likely already dragging or window not ready
+    }
+  };
+
   return (
     <div
-      data-tauri-drag-region
+      onPointerDown={onPointerDown}
       style={{
         position: 'fixed',
         top: 0,
