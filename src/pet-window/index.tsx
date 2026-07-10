@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
+import { getCurrentWindow, PhysicalPosition } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
 
@@ -7,13 +7,10 @@ const SPRITES_BASE = '/src/assets/sprites/';
 
 interface DragState {
   active: boolean;
-  startX: number;
-  startY: number;
+  lastScreenX: number;
+  lastScreenY: number;
   winX: number;
   winY: number;
-  pendingX: number;
-  pendingY: number;
-  rafId: number | null;
 }
 
 export function PetWindow(): React.ReactElement {
@@ -22,10 +19,8 @@ export function PetWindow(): React.ReactElement {
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
   const dragRef = useRef<DragState>({
     active: false,
-    startX: 0, startY: 0,
+    lastScreenX: 0, lastScreenY: 0,
     winX: 0, winY: 0,
-    pendingX: 0, pendingY: 0,
-    rafId: null,
   });
 
   useEffect(() => {
@@ -79,15 +74,6 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
-  const applyPosition = () => {
-    const d = dragRef.current;
-    d.rafId = null;
-    if (!d.active) return;
-    getCurrentWindow()
-      .setPosition(new LogicalPosition(d.pendingX, d.pendingY))
-      .catch(() => {});
-  };
-
   const onPointerDown = async (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     try {
@@ -95,12 +81,10 @@ export function PetWindow(): React.ReactElement {
       const pos = await win.outerPosition();
       const d = dragRef.current;
       d.active = true;
-      d.startX = e.clientX;
-      d.startY = e.clientY;
+      d.lastScreenX = e.screenX;
+      d.lastScreenY = e.screenY;
       d.winX = pos.x;
       d.winY = pos.y;
-      d.pendingX = pos.x;
-      d.pendingY = pos.y;
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     } catch {
       // Window not ready yet
@@ -110,20 +94,22 @@ export function PetWindow(): React.ReactElement {
   const onPointerMove = (e: React.PointerEvent) => {
     const d = dragRef.current;
     if (!d.active) return;
-    d.pendingX = d.winX + (e.clientX - d.startX);
-    d.pendingY = d.winY + (e.clientY - d.startY);
-    if (d.rafId === null) {
-      d.rafId = requestAnimationFrame(applyPosition);
-    }
+    const dx = e.screenX - d.lastScreenX;
+    const dy = e.screenY - d.lastScreenY;
+    d.lastScreenX = e.screenX;
+    d.lastScreenY = e.screenY;
+    d.winX += dx;
+    d.winY += dy;
+    // Clamp so at least 10px of the window stays on-screen
+    const clampedX = Math.max(-54, Math.min(d.winX, 3000));
+    const clampedY = Math.max(-54, Math.min(d.winY, 2000));
+    getCurrentWindow()
+      .setPosition(new PhysicalPosition(clampedX, clampedY))
+      .catch(() => {});
   };
 
   const onPointerUp = () => {
-    const d = dragRef.current;
-    d.active = false;
-    if (d.rafId !== null) {
-      cancelAnimationFrame(d.rafId);
-      d.rafId = null;
-    }
+    dragRef.current.active = false;
   };
 
   return (
