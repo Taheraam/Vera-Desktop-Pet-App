@@ -1,23 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
 
 const SPRITES_BASE = '/src/assets/sprites/';
 
-interface DragState {
-  startX: number;
-  startY: number;
-  winX: number;
-  winY: number;
-  dragging: boolean;
-}
-
 export function PetWindow(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<PetRenderer | null>(null);
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
-  const dragRef = useRef<DragState>({ startX: 0, startY: 0, winX: 0, winY: 0, dragging: false });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,61 +61,15 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
-  const onPointerDown = async (e: React.PointerEvent) => {
-    // Only drag on right-click (button === 2)
-    if (e.button !== 2) return;
-    try {
-      const win = getCurrentWindow();
-      const pos = await win.outerPosition();
-      console.log('Drag start at window pos', pos.x, pos.y);
-      dragRef.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        winX: pos.x,
-        winY: pos.y,
-        dragging: true,
-      };
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {
-      // Window not ready yet
-    }
-  };
-
-  const onPointerMove = async (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d.dragging) return;
-    // Only move while right button is held (buttons & 2)
-    if (!(e.buttons & 2)) {
-      d.dragging = false;
-      return;
-    }
-    try {
-      const dx = e.clientX - d.startX;
-      const dy = e.clientY - d.startY;
-      await getCurrentWindow().setPosition(new LogicalPosition(d.winX + dx, d.winY + dy));
-    } catch {
-      // ignore
-    }
-  };
-
-  const onPointerUp = (e: React.PointerEvent) => {
-    // Only stop drag on right-button release
-    if (e.button === 2) {
-      dragRef.current.dragging = false;
-    }
-  };
-
-  const onContextMenu = (e: React.MouseEvent) => {
-    // Prevent browser context menu on right-click
-    e.preventDefault();
+  const onPointerDown = (e: React.PointerEvent) => {
+    // Left-click drag to move the pet window
+    if (e.button !== 0) return;
+    getCurrentWindow().startDragging().catch(() => {});
   };
 
   return (
     <div
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onContextMenu={onContextMenu}
       style={{
         position: 'fixed',
         top: 0,
