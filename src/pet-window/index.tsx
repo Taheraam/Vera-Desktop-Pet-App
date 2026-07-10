@@ -1,14 +1,32 @@
 import React, { useEffect, useRef } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
 
 const SPRITES_BASE = '/src/assets/sprites/';
 
+interface DragState {
+  active: boolean;
+  startX: number;
+  startY: number;
+  winX: number;
+  winY: number;
+  pendingX: number;
+  pendingY: number;
+  rafId: number | null;
+}
+
 export function PetWindow(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<PetRenderer | null>(null);
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
+  const dragRef = useRef<DragState>({
+    active: false,
+    startX: 0, startY: 0,
+    winX: 0, winY: 0,
+    pendingX: 0, pendingY: 0,
+    rafId: null,
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -61,15 +79,58 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    // Left-click drag to move the pet window
+  const applyPosition = () => {
+    const d = dragRef.current;
+    d.rafId = null;
+    if (!d.active) return;
+    getCurrentWindow()
+      .setPosition(new LogicalPosition(d.pendingX, d.pendingY))
+      .catch(() => {});
+  };
+
+  const onPointerDown = async (e: React.PointerEvent) => {
     if (e.button !== 0) return;
-    getCurrentWindow().startDragging().catch(() => {});
+    try {
+      const win = getCurrentWindow();
+      const pos = await win.outerPosition();
+      const d = dragRef.current;
+      d.active = true;
+      d.startX = e.clientX;
+      d.startY = e.clientY;
+      d.winX = pos.x;
+      d.winY = pos.y;
+      d.pendingX = pos.x;
+      d.pendingY = pos.y;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Window not ready yet
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d.active) return;
+    d.pendingX = d.winX + (e.clientX - d.startX);
+    d.pendingY = d.winY + (e.clientY - d.startY);
+    if (d.rafId === null) {
+      d.rafId = requestAnimationFrame(applyPosition);
+    }
+  };
+
+  const onPointerUp = () => {
+    const d = dragRef.current;
+    d.active = false;
+    if (d.rafId !== null) {
+      cancelAnimationFrame(d.rafId);
+      d.rafId = null;
+    }
   };
 
   return (
     <div
       onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
       style={{
         position: 'fixed',
         top: 0,
