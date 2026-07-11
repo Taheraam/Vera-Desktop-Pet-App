@@ -4748,6 +4748,7 @@ dependencies = [
  "tauri-plugin-sql",
  "tauri-plugin-window-state",
  "tokio",
+ "windows",
 ]
 
 [[package]]

@@ -33,6 +33,9 @@ fn run() {
             // Start the alarm scheduler background thread
             commands::alarm_scheduler::start(app_handle.clone());
 
+            // Start the fullscreen detector background thread
+            commands::fullscreen::start_detector(app_handle.clone());
+
             // Create the pet window (transparent, always-on-top, 64x64)
             tauri::webview::WebviewWindowBuilder::new(
                 app,

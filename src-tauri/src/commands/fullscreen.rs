@@ -1,0 +1,85 @@
+use std::time::Duration;
+use tauri::{AppHandle, Emitter, Manager};
+
+use crate::db;
+
+pub fn start_detector(app: AppHandle) {
+    std::thread::spawn(move || {
+        let mut was_fullscreen = false;
+        loop {
+            std::thread::sleep(Duration::from_secs(2));
+            let is_fs = is_any_fullscreen();
+            if is_fs && !was_fullscreen {
+                if let Some(window) = app.get_webview_window("pet") {
+                    let _ = window.hide();
+                }
+                write_pet_state(&app, "hidden");
+                let _ = app.emit("fullscreen-detected", serde_json::json!({}));
+                was_fullscreen = true;
+            } else if !is_fs && was_fullscreen {
+                if let Some(window) = app.get_webview_window("pet") {
+                    let _ = window.show();
+                }
+                write_pet_state(&app, "idle");
+                let _ = app.emit("fullscreen-cleared", serde_json::json!({}));
+                was_fullscreen = false;
+            }
+        }
+    });
+}
+
+fn write_pet_state(app: &AppHandle, state: &str) {
+    let conn = match db::get_connection(app) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    let _ = conn.execute(
+        "INSERT OR REPLACE INTO app_state (key, value) VALUES ('pet_state', ?1)",
+        rusqlite::params![state],
+    );
+}
+
+#[cfg(target_os = "windows")]
+fn is_any_fullscreen() -> bool {
+    unsafe {
+        use windows::Win32::Foundation::{FALSE, HWND, RECT};
+        use windows::Win32::Graphics::Gdi::{
+            GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+        };
+        use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowRect};
+
+        let hwnd = GetForegroundWindow();
+        if hwnd == HWND::default() {
+            return false;
+        }
+
+        let mut window_rect = RECT::default();
+        if GetWindowRect(hwnd, &mut window_rect).is_err() {
+            return false;
+        }
+
+        let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if monitor.is_invalid() {
+            return false;
+        }
+
+        let mut mi: MONITORINFO = std::mem::zeroed();
+        mi.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+
+        if GetMonitorInfoW(monitor, &mut mi as *mut _) == FALSE {
+            return false;
+        }
+
+        let ww = window_rect.right - window_rect.left;
+        let wh = window_rect.bottom - window_rect.top;
+        let mw = mi.rcMonitor.right - mi.rcMonitor.left;
+        let mh = mi.rcMonitor.bottom - mi.rcMonitor.top;
+
+        ww >= mw * 95 / 100 && wh >= mh * 95 / 100
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn is_any_fullscreen() -> bool {
+    false
+}
