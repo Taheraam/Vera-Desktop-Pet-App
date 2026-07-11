@@ -63,7 +63,7 @@ export function TaskList() {
     if (!title) return;
     try {
       const task = await createTask({ title });
-      setTasks((prev) => [...prev, task]);
+      setTasks((prev) => (prev.some((t) => t.id === task.id) ? prev : [...prev, task]));
       setNewTitle('');
     } catch (err) {
       setError(String(err));

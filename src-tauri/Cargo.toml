@@ -15,6 +15,7 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 tauri-plugin-sql = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-window-state = "2"
+tauri-plugin-global-shortcut = "2"
 
 [profile.release]
 panic = "abort"

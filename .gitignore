@@ -40,6 +40,9 @@ nodefs-counter.txt
 coverage/
 .nyc_output
 
+# Planning docs (internal work products)
+docs/
+
 # OS-specific
 Thumbs.db
 Thumbs.db

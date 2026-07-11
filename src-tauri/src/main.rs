@@ -1,7 +1,7 @@
 mod db;
 mod commands;
 
-use tauri::Manager;
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 fn run() {
     tauri::Builder::default()
@@ -15,6 +15,15 @@ fn run() {
             None,
         ))
         .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state() == ShortcutState::Pressed {
+                        commands::hotkey::handle_call_pet(app);
+                    }
+                })
+                .build(),
+        )
         .setup(|app| {
             // Run migrations then seed last_alive_timestamp
             let app_handle = app.handle().clone();
@@ -49,6 +58,10 @@ fn run() {
             .inner_size(400.0, 600.0)
             .visible(false)
             .build()?;
+
+            // Register the "Call Pet" global hotkey (Alt+P)
+            let shortcut = Shortcut::new(Some(Modifiers::ALT), Code::KeyP);
+            app.global_shortcut().register(shortcut)?;
 
             Ok(())
         })

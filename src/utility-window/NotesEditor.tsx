@@ -111,7 +111,7 @@ export function NotesEditor() {
   const handleNew = async () => {
     try {
       const created = await saveNote({ contentMarkdown: '' });
-      setNotes((prev) => [...prev, created]);
+      setNotes((prev) => (prev.some((n) => n.id === created.id) ? prev : [...prev, created]));
       setActiveId(created.id);
       setContent('');
       setSaveState('idle');
