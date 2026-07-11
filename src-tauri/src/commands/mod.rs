@@ -5,3 +5,7 @@ pub mod window;
 pub mod alarm_scheduler;
 pub mod hotkey;
 pub mod fullscreen;
+pub mod gamification;
+pub mod provider;
+pub mod mcp;
+pub mod agent;

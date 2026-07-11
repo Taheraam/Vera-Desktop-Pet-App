@@ -82,7 +82,7 @@ pub fn list_notes(app: AppHandle) -> Result<Vec<Note>, String> {
     Ok(notes)
 }
 
-fn get_note_by_id(conn: &rusqlite::Connection, id: i64) -> Result<Note, String> {
+pub fn get_note_by_id(conn: &rusqlite::Connection, id: i64) -> Result<Note, String> {
     conn.query_row(
         "SELECT id, content_markdown, updated_at FROM notes WHERE id = ?1",
         rusqlite::params![id],

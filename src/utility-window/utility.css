@@ -620,3 +620,158 @@ body {
 .timer-buttons button:last-child:hover {
   background: #bbb;
 }
+
+/* ── XP Bar ─────────────────────────────────────────────────── */
+
+.xp-bar-track {
+  width: 100%;
+  height: 8px;
+  background: #e0d8cc;
+  border-radius: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  background: #e8765a;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ── AI Provider settings ──────────────────────────────────── */
+
+.badge-active {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #d4edda;
+  color: #155724;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-inactive {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #e2e3e5;
+  color: #383d41;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.settings-btn-sm {
+  padding: 2px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  color: #333;
+}
+
+.settings-btn-sm:hover {
+  background: #efe9df;
+}
+
+.btn-danger {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+
+.btn-danger:hover {
+  background: #fee;
+}
+
+/* ── Consent gate card ──────────────────────────────────────── */
+
+.consent-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.consent-card {
+  background: #faf7f2;
+  border: 2px solid #e8765a;
+  border-radius: 12px;
+  padding: 16px 20px;
+  width: 300px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.consent-header {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e8765a;
+}
+
+.consent-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #2b2b2b;
+}
+
+.consent-action {
+  font-weight: 600;
+}
+
+.consent-target {
+  color: #555;
+  word-break: break-word;
+}
+
+.consent-server {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.consent-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.consent-btn {
+  padding: 6px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.consent-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.consent-approve {
+  background: #e8765a;
+  color: #fff;
+}
+
+.consent-approve:hover:not(:disabled) {
+  background: #d4654a;
+}
+
+.consent-deny {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.consent-deny:hover:not(:disabled) {
+  background: #ccc;
+}

@@ -35,10 +35,12 @@ export class AnimationStateBridge {
 
   async start(): Promise<void> {
     const tasks: Promise<UnlistenFn>[] = [
-      onEvent('task-completed', (p: TaskCompletedPayload) => {
+      onEvent('task-completed', (_p: TaskCompletedPayload) => {
         this.requestState('happy');
-        // Revert to idle once the task list has no overdue items
-        // (check via pets worst case fallback — timeout return)
+      }),
+
+      onEvent('all-tasks-completed', () => {
+        this.requestState('celebrate');
       }),
 
       onEvent('alarm-fired', (_p: AlarmFiredPayload) => {

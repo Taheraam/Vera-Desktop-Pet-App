@@ -76,6 +76,22 @@ pub fn complete_task(app: AppHandle, id: i64) -> Result<Task, String> {
     let task = get_task_by_id(&conn, id)?;
     app.emit("task-completed", serde_json::json!({ "task": &task }))
         .map_err(|e| e.to_string())?;
+
+    // Award XP for completing a task
+    crate::commands::gamification::award_xp(&app, crate::commands::gamification::XP_PER_TASK);
+
+    // Check if all tasks are now complete — trigger celebrate
+    let remaining: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM tasks WHERE completed_at IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    if remaining == 0 {
+        let _ = app.emit("all-tasks-completed", serde_json::json!({}));
+    }
+
     Ok(task)
 }
 

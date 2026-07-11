@@ -33,6 +33,10 @@ fn run() {
             // Start the alarm scheduler background thread
             commands::alarm_scheduler::start(app_handle.clone());
 
+            // Initialize MCP and consent registries
+            commands::mcp::init_registry(&app_handle)?;
+            commands::agent::init_registry(&app_handle)?;
+
             // Start the fullscreen detector background thread
             commands::fullscreen::start_detector(app_handle.clone());
 
@@ -85,6 +89,20 @@ fn run() {
             commands::window::get_pet_state,
             commands::window::set_auto_start,
             commands::window::get_monitor_layout,
+            commands::gamification::ingest_dropped_content,
+            commands::gamification::get_xp_state,
+            commands::alarm_scheduler::debug_check_alarms,
+            commands::provider::add_provider_key,
+            commands::provider::remove_provider_key,
+            commands::provider::verify_provider_key,
+            commands::provider::list_providers,
+            commands::provider::set_active_provider,
+            commands::mcp::list_mcp_servers,
+            commands::mcp::connect_mcp_server,
+            commands::mcp::disconnect_mcp_server,
+            commands::agent::delegate_task_to_agent,
+            commands::agent::respond_to_consent_request,
+            commands::agent::list_agent_actions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VeraPet app");

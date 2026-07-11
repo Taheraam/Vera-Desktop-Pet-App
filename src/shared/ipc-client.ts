@@ -79,7 +79,7 @@ export function addProviderKey(p: { provider: string; apiKey: string }): Promise
 export function removeProviderKey(provider: string): Promise<void> {
   return invoke('remove_provider_key', { provider });
 }
-export function verifyProviderKey(provider: string): Promise<{ valid: boolean }> {
+export function verifyProviderKey(provider: string): Promise<{ valid: boolean; error?: string }> {
   return invoke('verify_provider_key', { provider });
 }
 export function listProviders(): Promise<ProviderStatus[]> {
@@ -131,6 +131,12 @@ export function getXpState(): Promise<{ xp: number; level: number }> {
   return invoke('get_xp_state');
 }
 
+// ── Debug Commands ───────────────────────────────────────────────────────────
+
+export function debugCheckAlarms(): Promise<number> {
+  return invoke('debug_check_alarms');
+}
+
 // ── Settings Commands ────────────────────────────────────────────────────────
 
 export function getSettings(): Promise<Settings> {
@@ -170,6 +176,8 @@ type EventPayloadMap = {
   };
   'delegation-completed': { delegationId: string; finalMessage: string };
   'context-changed': { context: ContextState };
+  'xp-changed': { xp: number; level: number };
+  'all-tasks-completed': Record<string, never>;
 };
 
 export function onEvent<E extends keyof EventPayloadMap>(

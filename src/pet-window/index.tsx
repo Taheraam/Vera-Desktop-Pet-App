@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
+import { ingestDroppedContent } from '../shared/ipc-client';
 
 const SPRITES_BASE = '/src/assets/sprites/';
 
@@ -9,6 +10,7 @@ export function PetWindow(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<PetRenderer | null>(null);
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -61,22 +63,63 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
+  // Listen for Tauri file-drop events
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const unlistenPromise = win.onDragDropEvent(async (event) => {
+      if (event.payload.type === 'drop' && event.payload.paths.length > 0) {
+        for (const path of event.payload.paths) {
+          try {
+            await ingestDroppedContent({ kind: 'file', payload: path });
+          } catch (err) {
+            console.error('Failed to ingest dropped file:', err);
+          }
+        }
+      }
+      setDragOver(event.payload.type === 'over' || event.payload.type === 'drop');
+    });
+    return () => { unlistenPromise.then((fn) => fn()); };
+  }, []);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+
+    // Handle text drops from other apps
+    const text = e.dataTransfer.getData('text');
+    if (text) {
+      try {
+        await ingestDroppedContent({ kind: 'text', payload: text });
+      } catch (err) {
+        console.error('Failed to ingest dropped text:', err);
+      }
+    }
+  };
+
   return (
     <div
-      // This is the key change: data-tauri-drag-region hands dragging entirely
-      // to the OS window manager. No per-pixel IPC calls, no manual position
-      // tracking — the window follows the cursor as natively as any OS window
-      // dragged by its title bar. A plain click (no movement) still passes
-      // through as a normal click event, so this doesn't interfere with any
-      // click-to-interact logic you add later.
       data-tauri-drag-region
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       style={{
         position: 'fixed',
         top: 0,
         left: 0,
         width: '100vw',
         height: '100vh',
-        cursor: 'grab',
+        cursor: dragOver ? 'copy' : 'grab',
+        outline: dragOver ? '2px dashed #e8765a' : 'none',
+        outlineOffset: '-2px',
       }}
     >
       <canvas
