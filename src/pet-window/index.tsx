@@ -1,27 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import { getCurrentWindow, PhysicalPosition } from '@tauri-apps/api/window';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
 
 const SPRITES_BASE = '/src/assets/sprites/';
 
-interface DragState {
-  active: boolean;
-  lastScreenX: number;
-  lastScreenY: number;
-  winX: number;
-  winY: number;
-}
-
 export function PetWindow(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<PetRenderer | null>(null);
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
-  const dragRef = useRef<DragState>({
-    active: false,
-    lastScreenX: 0, lastScreenY: 0,
-    winX: 0, winY: 0,
-  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -74,49 +61,15 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
-  const onPointerDown = async (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    try {
-      const win = getCurrentWindow();
-      const pos = await win.outerPosition();
-      const d = dragRef.current;
-      d.active = true;
-      d.lastScreenX = e.screenX;
-      d.lastScreenY = e.screenY;
-      d.winX = pos.x;
-      d.winY = pos.y;
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {
-      // Window not ready yet
-    }
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d.active) return;
-    const dx = e.screenX - d.lastScreenX;
-    const dy = e.screenY - d.lastScreenY;
-    d.lastScreenX = e.screenX;
-    d.lastScreenY = e.screenY;
-    d.winX += dx;
-    d.winY += dy;
-    // Clamp so at least 10px of the window stays on-screen
-    const clampedX = Math.max(-54, Math.min(d.winX, 3000));
-    const clampedY = Math.max(-54, Math.min(d.winY, 2000));
-    getCurrentWindow()
-      .setPosition(new PhysicalPosition(clampedX, clampedY))
-      .catch(() => {});
-  };
-
-  const onPointerUp = () => {
-    dragRef.current.active = false;
-  };
-
   return (
     <div
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+      // This is the key change: data-tauri-drag-region hands dragging entirely
+      // to the OS window manager. No per-pixel IPC calls, no manual position
+      // tracking — the window follows the cursor as natively as any OS window
+      // dragged by its title bar. A plain click (no movement) still passes
+      // through as a normal click event, so this doesn't interfere with any
+      // click-to-interact logic you add later.
+      data-tauri-drag-region
       style={{
         position: 'fixed',
         top: 0,
