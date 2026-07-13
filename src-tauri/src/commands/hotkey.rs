@@ -1,72 +1,56 @@
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::db;
+use super::window::{self, PetMode};
 
 /// Handle the "Call Pet" hotkey (Alt+P by default).
 ///
-/// Three-state resolution per PRD §3.1:
+/// Two-state resolution per PRD §3.1:
 /// | Current state | Action |
 /// |---|---|
-/// | hidden (fullscreen suppressed) | Un-hide pet window → set interactive |
-/// | idle / click-through | Disable click-through → set interactive |
-/// | already interactive | Open the Utility Window |
+/// | hidden (fullscreen suppressed) | Un-hide, restore previous pet_mode |
+/// | awake | Transition to asleep (walk to corner) |
+/// | asleep | Transition to awake (wake in place) |
 pub fn handle_call_pet(app: &AppHandle) {
-    let current_state = read_pet_state(app);
+    let current = get_computed_state(app);
 
-    match current_state.as_str() {
+    match current.as_str() {
         "hidden" => {
-            // Un-hide the pet window and become interactive
+            // Un-hide the pet window and restore previous mode
             if let Some(window) = app.get_webview_window("pet") {
                 let _ = window.show();
                 let _ = window.set_focus();
             }
-            write_pet_state(app, "interactive");
+            // Restore previous pet_mode (read from DB, default "awake")
+            let prev = window::read_pet_mode(app);
+            window::write_pet_mode(app, &prev);
             let _ = app.emit(
                 "pet-state-changed",
-                serde_json::json!({ "state": "interactive" }),
+                serde_json::json!({ "state": prev }),
             );
+            // Note: no pet-relocate here — we show at current position, not re-walk to corner
         }
-        "idle" => {
-            // Disable click-through — become interactive
-            write_pet_state(app, "interactive");
-            let _ = app.emit(
-                "pet-state-changed",
-                serde_json::json!({ "state": "interactive" }),
-            );
+        "awake" => {
+            // Transition to asleep
+            let _ = window::do_set_pet_mode(app, PetMode::Asleep);
         }
-        "interactive" => {
-            // Already interactive — reveal the utility window
-            if let Some(window) = app.get_webview_window("utility") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+        "asleep" => {
+            // Transition to awake
+            let _ = window::do_set_pet_mode(app, PetMode::Awake);
         }
         _ => {}
     }
 }
 
-/// Read the current pet_state from SQLite (defaults to "idle").
-fn read_pet_state(app: &AppHandle) -> String {
-    let conn = match db::get_connection(app) {
-        Ok(c) => c,
-        Err(_) => return "idle".to_string(),
-    };
-    conn.query_row(
-        "SELECT value FROM app_state WHERE key = 'pet_state'",
-        [],
-        |row| row.get::<_, String>(0),
-    )
-    .unwrap_or_else(|_| "idle".to_string())
-}
+/// Compute the current state: hidden if window not visible, else read pet_mode.
+fn get_computed_state(app: &AppHandle) -> String {
+    let is_visible = app
+        .get_webview_window("pet")
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false);
 
-/// Persist a new pet_state to SQLite.
-fn write_pet_state(app: &AppHandle, state: &str) {
-    let conn = match db::get_connection(app) {
-        Ok(c) => c,
-        Err(_) => return,
-    };
-    let _ = conn.execute(
-        "INSERT OR REPLACE INTO app_state (key, value) VALUES ('pet_state', ?1)",
-        rusqlite::params![state],
-    );
+    if !is_visible {
+        return "hidden".to_string();
+    }
+
+    window::read_pet_mode(app)
 }

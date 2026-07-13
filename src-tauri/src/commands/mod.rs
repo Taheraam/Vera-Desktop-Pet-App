@@ -9,3 +9,4 @@ pub mod gamification;
 pub mod provider;
 pub mod mcp;
 pub mod agent;
+pub mod context;

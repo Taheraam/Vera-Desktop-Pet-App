@@ -58,8 +58,8 @@ export function getMissedAlarmsSummary(): Promise<Alarm[]> {
 
 // ── Window & OS Behavior Commands ────────────────────────────────────────────
 
-export function setClickThrough(enabled: boolean): Promise<void> {
-  return invoke('set_click_through', { enabled });
+export function setPetMode(mode: 'awake' | 'asleep'): Promise<PetState> {
+  return invoke('set_pet_mode', { mode });
 }
 export function getPetState(): Promise<PetState> {
   return invoke('get_pet_state');
@@ -112,11 +112,14 @@ export function listAgentActions(limit?: number): Promise<AgentAction[]> {
 export function requestAccessibilityPermission(): Promise<{ granted: boolean }> {
   return invoke('request_accessibility_permission');
 }
-export function getPermissionStatus(): Promise<{ accessibility: boolean; context_engine_enabled: boolean }> {
+export function getPermissionStatus(): Promise<{ accessibility: boolean; contextEngineEnabled: boolean }> {
   return invoke('get_permission_status');
 }
 export function getCurrentContext(): Promise<ContextState> {
   return invoke('get_current_context');
+}
+export function setContextEngine(enabled: boolean): Promise<void> {
+  return invoke('set_context_engine', { enabled });
 }
 
 // ── Drag-and-Drop Commands ───────────────────────────────────────────────────
@@ -159,6 +162,7 @@ type EventPayloadMap = {
   'alarm-fired': { alarm: Alarm; task: Task | null };
   'missed-alarms-ready': { alarms: Alarm[] };
   'pet-state-changed': { state: PetState };
+  'pet-relocate': { targetX: number; targetY: number; durationMs: number };
   'fullscreen-detected': Record<string, never>;
   'fullscreen-cleared': Record<string, never>;
   'agent-consent-requested': {

@@ -128,5 +128,10 @@ pub fn seed_app_state(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>>
         [now()],
     )?;
 
+    conn.execute(
+        "INSERT OR IGNORE INTO app_state (key, value) VALUES ('pet_mode', 'awake')",
+        [],
+    )?;
+
     Ok(())
 }

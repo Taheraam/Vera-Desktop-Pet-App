@@ -16,7 +16,7 @@ tauri-plugin-sql = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-window-state = "2"
 tauri-plugin-global-shortcut = "2"
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi"] }
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi", "Win32_UI_Input"] }
 keyring = "3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 uuid = { version = "1", features = ["v4"] }

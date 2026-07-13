@@ -188,7 +188,7 @@ export function usePetState(): {
   state: PetState;
   playbackState: AnimationState;
 } {
-  const [state, setState] = useState<PetState>('idle');
+  const [state, setState] = useState<PetState>('awake');
   const [playbackState, setPlaybackState] = useState<AnimationState>('idle');
 
   useEffect(() => {

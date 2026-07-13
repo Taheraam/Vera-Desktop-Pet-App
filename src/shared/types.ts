@@ -21,13 +21,21 @@ export interface Alarm {
   missed: boolean;
 }
 
-export type PetState = 'hidden' | 'idle' | 'interactive';
+export type PetState = 'hidden' | 'awake' | 'asleep';
+
+export interface WorkArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export interface Monitor {
   name: string;
   size: [number, number];
   position: [number, number];
   scaleFactor: number;
+  workArea: WorkArea;
 }
 
 export interface Settings {
@@ -99,6 +107,7 @@ export interface AlarmCreatedPayload { alarm: Alarm; }
 export interface AlarmFiredPayload { alarm: Alarm; task: Task | null; }
 export interface MissedAlarmsReadyPayload { alarms: Alarm[]; }
 export interface PetStateChangedPayload { state: PetState; }
+export interface PetRelocatePayload { targetX: number; targetY: number; durationMs: number; }
 export interface AgentConsentRequestedPayload {
   delegationId: string;
   agentActionId: number;

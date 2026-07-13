@@ -27,6 +27,7 @@ export class AnimationStateBridge {
   private pendingState: AnimationState | null = null;
   private unlisteners: UnlistenFn[] = [];
   private busy = false;
+  private petMode: 'awake' | 'asleep' = 'awake';
 
   constructor(renderer: PetRenderer) {
     this.renderer = renderer;
@@ -45,6 +46,14 @@ export class AnimationStateBridge {
 
       onEvent('alarm-fired', (_p: AlarmFiredPayload) => {
         this.requestState('bring_me_a_note');
+      }),
+
+      onEvent('pet-state-changed', (p: { state: string }) => {
+        this.petMode = p.state === 'asleep' ? 'asleep' : 'awake';
+      }),
+
+      onEvent('pet-relocate', () => {
+        this.requestState('walk');
       }),
 
       onEvent('fullscreen-cleared', () => {
@@ -102,6 +111,12 @@ export class AnimationStateBridge {
   // Called when a non-looping animation reaches its final frame
   private onAnimationComplete(): void {
     this.busy = false;
+
+    // Auto-transition walk → sleep when entering asleep mode
+    if (this.pendingState === null && this.petMode === 'asleep' && this.renderer.fsm.currentState === 'walk') {
+      this.applyState('sleep');
+      return;
+    }
 
     if (this.pendingState !== null) {
       const next = this.pendingState;

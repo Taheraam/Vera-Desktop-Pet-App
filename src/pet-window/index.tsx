@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
-import { ingestDroppedContent } from '../shared/ipc-client';
+import { ingestDroppedContent, setPetMode, onEvent } from '../shared/ipc-client';
 
 const SPRITES_BASE = '/src/assets/sprites/';
 
@@ -11,6 +11,7 @@ export function PetWindow(): React.ReactElement {
   const rendererRef = useRef<PetRenderer | null>(null);
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [petMode, setPetModeState] = useState<'awake' | 'asleep'>('awake');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,6 +64,41 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, []);
 
+  // Listen for pet-state-changed to track mode
+  useEffect(() => {
+    const unlisten = onEvent('pet-state-changed', ({ state }) => {
+      setPetModeState(state === 'asleep' ? 'asleep' : 'awake');
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
+  // Listen for pet-relocate → animate window position (bounded tween)
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const unlisten = onEvent('pet-relocate', async ({ targetX, targetY, durationMs }) => {
+      const startPos = await win.outerPosition();
+      const startX = startPos.x;
+      const startY = startPos.y;
+      const startTime = performance.now();
+
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const x = Math.round(startX + (targetX - startX) * eased);
+        const y = Math.round(startY + (targetY - startY) * eased);
+        win.setPosition(new LogicalPosition(x, y));
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+        // On arrival, animation-state.ts handles walk→sleep transition
+      };
+      requestAnimationFrame(animate);
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
   // Listen for Tauri file-drop events
   useEffect(() => {
     const win = getCurrentWindow();
@@ -105,12 +141,35 @@ export function PetWindow(): React.ReactElement {
     }
   };
 
+  const handleDoubleClick = async () => {
+    try {
+      if (petMode === 'asleep') {
+        // Wake only — does not open utility window on this same click
+        await setPetMode('awake');
+      } else if (petMode === 'awake') {
+        // Open utility window adjacent to pet's current position
+        const win = getCurrentWindow();
+        const pos = await win.outerPosition();
+        const { Window } = await import('@tauri-apps/api/window');
+        const utilityWin = await Window.getByLabel('utility');
+        if (utilityWin) {
+          await utilityWin.setPosition(new LogicalPosition(pos.x + 70, pos.y));
+          await utilityWin.show();
+          await utilityWin.setFocus();
+        }
+      }
+    } catch (err) {
+      console.error('Double-click handler failed:', err);
+    }
+  };
+
   return (
     <div
       data-tauri-drag-region
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onDoubleClick={handleDoubleClick}
       style={{
         position: 'fixed',
         top: 0,

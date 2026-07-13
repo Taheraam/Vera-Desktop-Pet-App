@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import type { ProviderStatus, AgentAction } from '../shared/types';
 import {
-  setClickThrough, setAutoStart, getXpState, onEvent,
+  setAutoStart, getXpState, onEvent,
   addProviderKey, removeProviderKey, verifyProviderKey,
   listProviders, setActiveProvider, listAgentActions,
+  getPermissionStatus, setContextEngine,
 } from '../shared/ipc-client';
 
 const PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
@@ -22,6 +23,7 @@ export function SettingsPanel() {
   const [verifyStatus, setVerifyStatus] = useState<Record<string, string>>({});
   const [agentActions, setAgentActions] = useState<AgentAction[]>([]);
   const [showAudit, setShowAudit] = useState(false);
+  const [ctxEngineEnabled, setCtxEngineEnabled] = useState(false);
 
   useEffect(() => {
     getXpState().then(setXpState).catch(() => {});
@@ -32,6 +34,10 @@ export function SettingsPanel() {
   useEffect(() => {
     refreshProviders();
     refreshAudit();
+  }, []);
+
+  useEffect(() => {
+    getPermissionStatus().then((s) => setCtxEngineEnabled(s.contextEngineEnabled)).catch(() => {});
   }, []);
 
   const refreshProviders = async () => {
@@ -48,20 +54,19 @@ export function SettingsPanel() {
     } catch { /* ignore */ }
   };
 
-  const handleToggleClickThrough = useCallback(async () => {
-    try { await setClickThrough(true); } catch { /* not critical */ }
-  }, []);
-
-  const handleDisableClickThrough = useCallback(async () => {
-    try { await setClickThrough(false); } catch { /* not critical */ }
-  }, []);
-
   const handleEnableAutoStart = useCallback(async () => {
     try { await setAutoStart(true); } catch { /* not critical */ }
   }, []);
 
   const handleDisableAutoStart = useCallback(async () => {
     try { await setAutoStart(false); } catch { /* not critical */ }
+  }, []);
+
+  const handleToggleContextEngine = useCallback(async (enable: boolean) => {
+    try {
+      await setContextEngine(enable);
+      setCtxEngineEnabled(enable);
+    } catch { /* not critical */ }
   }, []);
 
   const handleAddKey = async (provider: string) => {
@@ -135,15 +140,6 @@ export function SettingsPanel() {
       </div>
 
       <div className="settings-section">
-        <h4>Pet Window</h4>
-        <div className="settings-row">
-          <span>Enable click-through (pet ignores clicks)</span>
-          <button onClick={handleToggleClickThrough} className="settings-btn">On</button>
-          <button onClick={handleDisableClickThrough} className="settings-btn">Off</button>
-        </div>
-      </div>
-
-      <div className="settings-section">
         <h4>Launch</h4>
         <div className="settings-row">
           <span>Launch at login</span>
@@ -151,6 +147,16 @@ export function SettingsPanel() {
           <button onClick={handleDisableAutoStart} className="settings-btn">Off</button>
         </div>
         <p className="settings-note">Only enable if you want the pet to start automatically with your computer.</p>
+      </div>
+
+      <div className="settings-section">
+        <h4>Context Engine</h4>
+        <div className="settings-row">
+          <span>Active-window detection</span>
+          <button onClick={() => handleToggleContextEngine(true)} className="settings-btn" style={ctxEngineEnabled ? { background: '#2a7', color: '#fff' } : {}}>On</button>
+          <button onClick={() => handleToggleContextEngine(false)} className="settings-btn" style={!ctxEngineEnabled ? { background: '#c44', color: '#fff' } : {}}>Off</button>
+        </div>
+        <p className="settings-note">Detects the active window category (coding, browsing, idle) so the pet can respond contextually. Window titles are read in-memory only and never stored. If disabled, the pet always shows its idle state.</p>
       </div>
 
       <div className="settings-section">

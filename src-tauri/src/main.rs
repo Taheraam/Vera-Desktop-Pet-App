@@ -40,6 +40,9 @@ fn run() {
             // Start the fullscreen detector background thread
             commands::fullscreen::start_detector(app_handle.clone());
 
+            // Initialize context engine
+            commands::context::init_registry(&app_handle)?;
+
             // Create the pet window (transparent, always-on-top, 64x64)
             tauri::webview::WebviewWindowBuilder::new(
                 app,
@@ -85,7 +88,7 @@ fn run() {
             commands::alarms::delete_alarm,
             commands::alarms::list_alarms,
             commands::alarms::get_missed_alarms_summary,
-            commands::window::set_click_through,
+            commands::window::set_pet_mode,
             commands::window::get_pet_state,
             commands::window::set_auto_start,
             commands::window::get_monitor_layout,
@@ -103,6 +106,10 @@ fn run() {
             commands::agent::delegate_task_to_agent,
             commands::agent::respond_to_consent_request,
             commands::agent::list_agent_actions,
+            commands::context::get_current_context,
+            commands::context::get_permission_status,
+            commands::context::request_accessibility_permission,
+            commands::context::set_context_engine,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VeraPet app");

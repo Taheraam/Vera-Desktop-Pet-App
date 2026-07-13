@@ -1,7 +1,7 @@
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::db;
+use super::window;
 
 pub fn start_detector(app: AppHandle) {
     std::thread::spawn(move || {
@@ -10,33 +10,33 @@ pub fn start_detector(app: AppHandle) {
             std::thread::sleep(Duration::from_secs(2));
             let is_fs = is_any_fullscreen();
             if is_fs && !was_fullscreen {
-                if let Some(window) = app.get_webview_window("pet") {
-                    let _ = window.hide();
+                if let Some(win) = app.get_webview_window("pet") {
+                    let _ = win.hide();
                 }
-                write_pet_state(&app, "hidden");
                 let _ = app.emit("fullscreen-detected", serde_json::json!({}));
                 was_fullscreen = true;
             } else if !is_fs && was_fullscreen {
-                if let Some(window) = app.get_webview_window("pet") {
-                    let _ = window.show();
+                if let Some(win) = app.get_webview_window("pet") {
+                    let _ = win.show();
                 }
-                write_pet_state(&app, "idle");
-                let _ = app.emit("fullscreen-cleared", serde_json::json!({}));
+                // Restore the preserved pet_mode
+                let mode = window::read_pet_mode(&app);
+                window::write_pet_mode(&app, &mode);
+
+                if mode == "awake" {
+                    // Was awake → play waking_up animation
+                    let _ = app.emit("fullscreen-cleared", serde_json::json!({}));
+                } else {
+                    // Was asleep → just reappear, no waking_up
+                    let _ = app.emit(
+                        "pet-state-changed",
+                        serde_json::json!({ "state": "asleep" }),
+                    );
+                }
                 was_fullscreen = false;
             }
         }
     });
-}
-
-fn write_pet_state(app: &AppHandle, state: &str) {
-    let conn = match db::get_connection(app) {
-        Ok(c) => c,
-        Err(_) => return,
-    };
-    let _ = conn.execute(
-        "INSERT OR REPLACE INTO app_state (key, value) VALUES ('pet_state', ?1)",
-        rusqlite::params![state],
-    );
 }
 
 #[cfg(target_os = "windows")]
