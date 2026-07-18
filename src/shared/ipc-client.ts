@@ -149,7 +149,7 @@ export function getSettings(): Promise<Settings> {
   return invoke('get_settings');
 }
 export function updateSettings(p: Partial<Settings>): Promise<Settings> {
-  return invoke('update_settings', p);
+  return invoke('update_settings', { settings: p });
 }
 
 // ── Event Listeners (typed wrappers around @tauri-apps/api/event) ────────────

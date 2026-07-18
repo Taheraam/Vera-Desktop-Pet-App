@@ -54,6 +54,8 @@ fn run() {
             .transparent(true)
             .decorations(false)
             .resizable(false)
+            .minimizable(false)
+            .closable(false)
             .always_on_top(true)
             .skip_taskbar(true)
             .build()?;
