@@ -37,9 +37,6 @@ fn run() {
             commands::mcp::init_registry(&app_handle)?;
             commands::agent::init_registry(&app_handle)?;
 
-            // Start the fullscreen detector background thread
-            commands::fullscreen::start_detector(app_handle.clone());
-
             // Initialize context engine
             commands::context::init_registry(&app_handle)?;
 
