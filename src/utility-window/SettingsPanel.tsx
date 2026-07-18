@@ -6,6 +6,7 @@ import {
   addProviderKey, removeProviderKey, verifyProviderKey,
   listProviders, setActiveProvider, listAgentActions,
   getPermissionStatus, setContextEngine,
+  getSettings, updateSettings,
 } from '../shared/ipc-client';
 
 const PROVIDERS = ['openai', 'anthropic', 'gemini'] as const;
@@ -24,6 +25,11 @@ export function SettingsPanel() {
   const [agentActions, setAgentActions] = useState<AgentAction[]>([]);
   const [showAudit, setShowAudit] = useState(false);
   const [ctxEngineEnabled, setCtxEngineEnabled] = useState(false);
+  const [greetingMessage, setGreetingMessage] = useState("");
+
+  useEffect(() => {
+    getSettings().then((s) => setGreetingMessage(s.greetingMessage)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     getXpState().then(setXpState).catch(() => {});
@@ -60,6 +66,15 @@ export function SettingsPanel() {
 
   const handleDisableAutoStart = useCallback(async () => {
     try { await setAutoStart(false); } catch { /* not critical */ }
+  }, []);
+
+  const handleUpdateGreeting = useCallback(async (value: string) => {
+    try {
+      const updated = await updateSettings({ greetingMessage: value });
+      setGreetingMessage(updated.greetingMessage);
+    } catch (err) {
+      console.error('Failed to update greeting:', err);
+    }
   }, []);
 
   const handleToggleContextEngine = useCallback(async (enable: boolean) => {
@@ -147,6 +162,40 @@ export function SettingsPanel() {
           <button onClick={handleDisableAutoStart} className="settings-btn">Off</button>
         </div>
         <p className="settings-note">Only enable if you want the pet to start automatically with your computer.</p>
+      </div>
+
+      <div className="settings-section">
+        <h4>Pet Greeting</h4>
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <label htmlFor="greeting-input" style={{ fontSize: 13, color: '#555' }}>
+            Greeting message
+          </label>
+          <input
+            id="greeting-input"
+            type="text"
+            value={greetingMessage}
+            onChange={(e) => setGreetingMessage(e.target.value)}
+            onBlur={(e) => {
+              const val = e.target.value.trim();
+              if (val) handleUpdateGreeting(val);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            }}
+            style={{
+              marginTop: 4,
+              padding: '8px 10px',
+              border: '1px solid #ccc',
+              borderRadius: 6,
+              fontSize: 13,
+              fontFamily: 'inherit',
+              width: '100%',
+            }}
+          />
+          <p className="settings-note">
+            Shown when the pet wakes up or on app launch. Auto-hides after a few seconds.
+          </p>
+        </div>
       </div>
 
       <div className="settings-section">

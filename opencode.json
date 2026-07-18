@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/big-pickle",
+  "instructions": ["AGENTS.md", "docs/*.md"],
+  "permission": {
+    "edit": "allow",
+    "bash": "allow"
+  },
+  "autoupdate": true,
+  "snapshot": true
+}

@@ -11,6 +11,18 @@ pub struct Alarm {
     pub fire_at: i64,
     pub fired_at: Option<i64>,
     pub missed: bool,
+    pub acknowledged_at: Option<i64>,
+}
+
+fn row_to_alarm(row: &rusqlite::Row) -> rusqlite::Result<Alarm> {
+    Ok(Alarm {
+        id: row.get(0)?,
+        task_id: row.get(1)?,
+        fire_at: row.get(2)?,
+        fired_at: row.get(3)?,
+        missed: row.get(4)?,
+        acknowledged_at: row.get(5)?,
+    })
 }
 
 #[tauri::command]
@@ -52,28 +64,20 @@ pub fn list_alarms(
 
     let mut stmt = if upcoming_only.unwrap_or(false) {
         conn.prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed FROM alarms
+            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
              WHERE fire_at > ?1 AND fired_at IS NULL
              ORDER BY fire_at ASC",
         )
     } else {
         conn.prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed FROM alarms
+            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
              ORDER BY fire_at ASC",
         )
     }
     .map_err(|e| e.to_string())?;
 
     let alarms = stmt
-        .query_map(rusqlite::params![now], |row| {
-            Ok(Alarm {
-                id: row.get(0)?,
-                task_id: row.get(1)?,
-                fire_at: row.get(2)?,
-                fired_at: row.get(3)?,
-                missed: row.get(4)?,
-            })
-        })
+        .query_map(rusqlite::params![now], |row| row_to_alarm(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
@@ -100,22 +104,14 @@ pub fn get_missed_alarms_summary(app: AppHandle) -> Result<Vec<Alarm>, String> {
     // Find alarms that fired while the app was closed
     let mut stmt = conn
         .prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed FROM alarms
+            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
              WHERE fire_at >= ?1 AND fire_at < ?2 AND fired_at IS NULL
              ORDER BY fire_at ASC",
         )
         .map_err(|e| e.to_string())?;
 
     let alarms = stmt
-        .query_map(rusqlite::params![last_alive_ts, now], |row| {
-            Ok(Alarm {
-                id: row.get(0)?,
-                task_id: row.get(1)?,
-                fire_at: row.get(2)?,
-                fired_at: row.get(3)?,
-                missed: row.get(4)?,
-            })
-        })
+        .query_map(rusqlite::params![last_alive_ts, now], |row| row_to_alarm(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
@@ -147,17 +143,24 @@ pub fn get_missed_alarms_summary(app: AppHandle) -> Result<Vec<Alarm>, String> {
 
 fn get_alarm_by_id(conn: &rusqlite::Connection, id: i64) -> Result<Alarm, String> {
     conn.query_row(
-        "SELECT id, task_id, fire_at, fired_at, missed FROM alarms WHERE id = ?1",
+        "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms WHERE id = ?1",
         rusqlite::params![id],
-        |row| {
-            Ok(Alarm {
-                id: row.get(0)?,
-                task_id: row.get(1)?,
-                fire_at: row.get(2)?,
-                fired_at: row.get(3)?,
-                missed: row.get(4)?,
-            })
-        },
+        |row| row_to_alarm(row),
     )
     .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn acknowledge_alarm(app: AppHandle, id: i64) -> Result<(), String> {
+    let conn = db::get_connection(&app)?;
+    conn.execute(
+        "UPDATE alarms SET acknowledged_at = ?1 WHERE id = ?2",
+        rusqlite::params![db::now(), id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    app.emit("alarm-acknowledged", serde_json::json!({ "id": id }))
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

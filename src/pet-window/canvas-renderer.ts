@@ -98,6 +98,9 @@ export class PetRenderer {
   private rafId = 0;
   private running = false;
   private spritesReady = false;
+  private holdUntil: number | null = null;
+  private holdState: AnimationState = 'idle';
+  private holdFrameIndex = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -107,6 +110,16 @@ export class PetRenderer {
 
   get isReady(): boolean {
     return this.spritesReady;
+  }
+
+  /** Pause normal animation and hold a specific frame for durationMs. */
+  holdFrame(state: AnimationState, frameIndex: number, durationMs: number): void {
+    this.holdUntil = performance.now() + durationMs;
+    this.holdState = state;
+    this.holdFrameIndex = frameIndex;
+    this.fsm.currentState = state;
+    this.fsm.currentFrameIndex = frameIndex;
+    this.render();
   }
 
   async loadSprites(basePath: string): Promise<void> {
@@ -172,6 +185,22 @@ export class PetRenderer {
       this.rafId = requestAnimationFrame(loop);
 
       const deltaMs = timestamp - this.lastRenderTime;
+
+      // If holding a specific frame (e.g. blink during greeting bubble)
+      if (this.holdUntil !== null) {
+        if (timestamp < this.holdUntil) {
+          this.fsm.currentState = this.holdState;
+          this.fsm.currentFrameIndex = this.holdFrameIndex;
+          const minInterval = 1000 / 8;
+          if (deltaMs >= minInterval) {
+            this.render();
+            this.lastRenderTime = timestamp;
+          }
+          return;
+        }
+        this.holdUntil = null;
+        this.fsm.frameTimer = 0;
+      }
 
       // Advance animation logic every frame
       this.fsm.advance(deltaMs, this.sprites);

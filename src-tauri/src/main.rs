@@ -43,14 +43,14 @@ fn run() {
             // Initialize context engine
             commands::context::init_registry(&app_handle)?;
 
-            // Create the pet window (transparent, always-on-top, 64x64)
+            // Create the pet window (transparent, always-on-top, 220x140)
             tauri::webview::WebviewWindowBuilder::new(
                 app,
                 "pet",
                 tauri::WebviewUrl::App("src/pet-window/index.html".into()),
             )
             .title("VeraPet")
-            .inner_size(64.0, 64.0)
+            .inner_size(220.0, 140.0)
             .transparent(true)
             .decorations(false)
             .resizable(false)
@@ -88,6 +88,7 @@ fn run() {
             commands::alarms::delete_alarm,
             commands::alarms::list_alarms,
             commands::alarms::get_missed_alarms_summary,
+            commands::alarms::acknowledge_alarm,
             commands::window::set_pet_mode,
             commands::window::get_pet_state,
             commands::window::set_auto_start,
@@ -110,6 +111,8 @@ fn run() {
             commands::context::get_permission_status,
             commands::context::request_accessibility_permission,
             commands::context::set_context_engine,
+            commands::settings::get_settings,
+            commands::settings::update_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VeraPet app");

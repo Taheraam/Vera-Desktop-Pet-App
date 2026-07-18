@@ -3,6 +3,8 @@ import type {
   AnimationState, ContextState,
   AgentConsentRequestedPayload, AgentActionResolvedPayload,
   AlarmFiredPayload, TaskCompletedPayload,
+  OverdueDetectedPayload, OverdueClearedPayload,
+  ContentIngestedPayload, AlarmAcknowledgedPayload,
 } from '../shared/types';
 import { onEvent } from '../shared/ipc-client';
 import { PetRenderer } from './canvas-renderer';
@@ -61,7 +63,9 @@ export class AnimationStateBridge {
       }),
 
       onEvent('context-changed', (p: { context: ContextState }) => {
-        if (p.context === 'idle' || p.context === 'unknown') {
+        if (p.context === 'coding') {
+          this.requestState('typing_focused');
+        } else {
           this.requestState('idle');
         }
       }),
@@ -71,6 +75,23 @@ export class AnimationStateBridge {
       }),
 
       onEvent('agent-action-resolved', (_p: AgentActionResolvedPayload) => {
+        this.requestState('idle');
+      }),
+
+      // ── Milestone 6: Deep Interaction & Gamification ──
+      onEvent('overdue-detected', (_p: OverdueDetectedPayload) => {
+        this.requestState('worried');
+      }),
+
+      onEvent('overdue-cleared', (_p: OverdueClearedPayload) => {
+        this.requestState('idle');
+      }),
+
+      onEvent('content-ingested', (_p: ContentIngestedPayload) => {
+        this.requestState('eating');
+      }),
+
+      onEvent('alarm-acknowledged', (_p: AlarmAcknowledgedPayload) => {
         this.requestState('idle');
       }),
     ];

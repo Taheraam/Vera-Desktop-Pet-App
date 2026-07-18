@@ -63,6 +63,9 @@ pub fn ingest_dropped_content(
     app.emit("note-updated", serde_json::json!({ "note": &note }))
         .map_err(|e| e.to_string())?;
 
+    app.emit("content-ingested", serde_json::json!({ "kind": kind }))
+        .map_err(|e| e.to_string())?;
+
     Ok(IngestResult { note_id })
 }
 

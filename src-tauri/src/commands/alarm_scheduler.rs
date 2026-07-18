@@ -42,11 +42,11 @@ fn fire_due_alarms(app: &AppHandle) -> Result<usize, String> {
     // First log all alarms in the DB for diagnostics
     {
         let mut count_stmt = conn
-            .prepare("SELECT id, fire_at, fired_at, missed FROM alarms ORDER BY id")
+            .prepare("SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms ORDER BY id")
             .map_err(|e| e.to_string())?;
-        let all: Vec<(i64, i64, Option<i64>, bool)> = count_stmt
+        let all: Vec<(i64, i64, Option<i64>, bool, Option<i64>)> = count_stmt
             .query_map([], |row| {
-                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(5)?))
             })
             .map_err(|e| e.to_string())?
             .collect::<Result<_, _>>()
@@ -54,18 +54,19 @@ fn fire_due_alarms(app: &AppHandle) -> Result<usize, String> {
         if all.is_empty() {
             eprintln!("[alarm_scheduler] no alarms in DB");
         } else {
-            for (id, fire_at, fired_at, missed) in &all {
+            for (id, fire_at, fired_at, missed, _acknowledged) in &all {
                 eprintln!(
                     "[alarm_scheduler] alarm id={id} fire_at={fire_at} fired_at={fired_at:?} missed={missed} now={now} due={}",
                     fire_at <= &now
                 );
-            }
+    }
+
         }
     }
 
     let mut stmt = conn
         .prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed FROM alarms
+            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
              WHERE fire_at <= ?1 AND fired_at IS NULL
              ORDER BY fire_at ASC",
         )
@@ -79,6 +80,7 @@ fn fire_due_alarms(app: &AppHandle) -> Result<usize, String> {
                 fire_at: row.get(2)?,
                 fired_at: row.get(3)?,
                 missed: row.get(4)?,
+                acknowledged_at: row.get(5)?,
             })
         })
         .map_err(|e| e.to_string())?

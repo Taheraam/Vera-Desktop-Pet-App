@@ -97,6 +97,29 @@ pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
                 CREATE INDEX IF NOT EXISTS idx_agent_actions_delegation ON agent_actions(delegation_id);
             "#,
         },
+        // ── v3: acknowledged_at for alarms (Milestone 6) ──
+        tauri_plugin_sql::Migration {
+            version: 3,
+            description: "add acknowledged_at to alarms",
+            kind: tauri_plugin_sql::MigrationKind::Up,
+            sql: r#"
+                ALTER TABLE alarms ADD COLUMN IF NOT EXISTS acknowledged_at INTEGER;
+                CREATE INDEX IF NOT EXISTS idx_alarms_acknowledged ON alarms(acknowledged_at);
+            "#,
+        },
+        // ── v4: greeting_message and settings defaults ──
+        tauri_plugin_sql::Migration {
+            version: 4,
+            description: "add settings defaults to app_state",
+            kind: tauri_plugin_sql::MigrationKind::Up,
+            sql: r#"
+                INSERT OR IGNORE INTO app_state (key, value) VALUES ('render_engine', 'canvas');
+                INSERT OR IGNORE INTO app_state (key, value) VALUES ('hotkey', 'Alt+P');
+                INSERT OR IGNORE INTO app_state (key, value) VALUES ('auto_start_enabled', 'false');
+                INSERT OR IGNORE INTO app_state (key, value) VALUES ('context_engine_enabled', 'true');
+                INSERT OR IGNORE INTO app_state (key, value) VALUES ('greeting_message', 'Hi! I''m here to help you stay on track.');
+            "#,
+        },
     ]
 }
 
@@ -107,7 +130,20 @@ pub fn migrations() -> Vec<tauri_plugin_sql::Migration> {
 pub fn run_migrations(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let conn = get_connection(app)?;
     for migration in migrations() {
-        conn.execute_batch(&migration.sql)?;
+        // v3 adds a column — check existence first (SQLite compat)
+        if migration.version == 3 {
+            let exists: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('alarms') WHERE name='acknowledged_at'",
+                [],
+                |row| row.get(0),
+            ).unwrap_or(0);
+            if exists == 0 {
+                conn.execute_batch("ALTER TABLE alarms ADD COLUMN acknowledged_at INTEGER;")?;
+                conn.execute_batch("CREATE INDEX IF NOT EXISTS idx_alarms_acknowledged ON alarms(acknowledged_at);")?;
+            }
+        } else {
+            conn.execute_batch(&migration.sql)?;
+        }
     }
     Ok(())
 }
@@ -130,6 +166,27 @@ pub fn seed_app_state(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>>
 
     conn.execute(
         "INSERT OR IGNORE INTO app_state (key, value) VALUES ('pet_mode', 'awake')",
+        [],
+    )?;
+
+    conn.execute(
+        "INSERT OR IGNORE INTO app_state (key, value) VALUES ('greeting_message', 'Hi! I''m here to help you stay on track.')",
+        [],
+    )?;
+    conn.execute(
+        "INSERT OR IGNORE INTO app_state (key, value) VALUES ('render_engine', 'canvas')",
+        [],
+    )?;
+    conn.execute(
+        "INSERT OR IGNORE INTO app_state (key, value) VALUES ('hotkey', 'Alt+P')",
+        [],
+    )?;
+    conn.execute(
+        "INSERT OR IGNORE INTO app_state (key, value) VALUES ('auto_start_enabled', 'false')",
+        [],
+    )?;
+    conn.execute(
+        "INSERT OR IGNORE INTO app_state (key, value) VALUES ('context_engine_enabled', 'true')",
         [],
     )?;
 

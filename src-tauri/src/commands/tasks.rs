@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::db;
@@ -33,6 +34,9 @@ pub fn create_task(
 
     app.emit("task-created", serde_json::json!({ "task": &task }))
         .map_err(|e| e.to_string())?;
+
+    check_and_emit_overdue(&app);
+
     Ok(task)
 }
 
@@ -61,6 +65,9 @@ pub fn update_task(
     let task = get_task_by_id(&conn, id)?;
     app.emit("task-updated", serde_json::json!({ "task": &task }))
         .map_err(|e| e.to_string())?;
+
+    check_and_emit_overdue(&app);
+
     Ok(task)
 }
 
@@ -92,6 +99,8 @@ pub fn complete_task(app: AppHandle, id: i64) -> Result<Task, String> {
         let _ = app.emit("all-tasks-completed", serde_json::json!({}));
     }
 
+    check_and_emit_overdue(&app);
+
     Ok(task)
 }
 
@@ -101,9 +110,11 @@ pub fn delete_task(app: AppHandle, id: i64) -> Result<(), String> {
     // Alarms cascade-delete via FK constraint
     conn.execute("DELETE FROM tasks WHERE id = ?1", rusqlite::params![id])
         .map_err(|e| e.to_string())?;
-
     app.emit("task-deleted", serde_json::json!({ "id": id }))
         .map_err(|e| e.to_string())?;
+
+    check_and_emit_overdue(&app);
+
     Ok(())
 }
 
@@ -137,6 +148,8 @@ pub fn list_tasks(
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
 
+    check_and_emit_overdue(&app);
+
     Ok(tasks)
 }
 
@@ -156,4 +169,25 @@ fn get_task_by_id(conn: &rusqlite::Connection, id: i64) -> Result<Task, String> 
         },
     )
     .map_err(|e| e.to_string())
+}
+
+fn check_and_emit_overdue(app: &AppHandle) {
+    let conn = match crate::db::get_connection(app) {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    let now = crate::db::now();
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM tasks WHERE due_at IS NOT NULL AND due_at < ?1 AND completed_at IS NULL",
+            rusqlite::params![now],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    if count > 0 {
+        let _ = app.emit("overdue-detected", json!({ "count": count }));
+    } else {
+        let _ = app.emit("overdue-cleared", json!({}));
+    }
 }

@@ -19,6 +19,7 @@ export interface Alarm {
   fireAt: number;
   firedAt: number | null;
   missed: boolean;
+  acknowledgedAt: number | null;
 }
 
 export type PetState = 'hidden' | 'awake' | 'asleep';
@@ -43,6 +44,7 @@ export interface Settings {
   hotkey: string;
   autoStartEnabled: boolean;
   contextEngineEnabled: boolean;
+  greetingMessage: string;
 }
 
 export type ProviderName = 'openai' | 'anthropic' | 'gemini';
@@ -127,6 +129,12 @@ export interface DelegationCompletedPayload {
 }
 export interface ContextChangedPayload { context: ContextState; }
 
+// ── Milestone 6 event payloads ────────────────────────────────────────────────
+export interface OverdueDetectedPayload { count: number; }
+export interface OverdueClearedPayload { }
+export interface ContentIngestedPayload { kind: string; }
+export interface AlarmAcknowledgedPayload { id: number; }
+
 // ── Tauri plugin & utility types ─────────────────────────────────────────────
 
 export interface CreateTaskParams extends Record<string, unknown> {
@@ -155,4 +163,7 @@ export interface RespondToConsentRequestParams extends Record<string, unknown> {
 export interface IngestDroppedContentParams extends Record<string, unknown> {
   kind: 'file' | 'text' | 'image';
   payload: string;
+}
+export interface AcknowledgeAlarmParams extends Record<string, unknown> {
+  id: number;
 }

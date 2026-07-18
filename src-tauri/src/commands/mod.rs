@@ -10,3 +10,4 @@ pub mod provider;
 pub mod mcp;
 pub mod agent;
 pub mod context;
+pub mod settings;

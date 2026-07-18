@@ -120,7 +120,7 @@ fn get_foreground_title() -> Option<String> {
             return None;
         }
         let mut buffer = [0u16; 512];
-        let len = GetWindowTextW(hwnd, &mut buffer, buffer.len() as i32);
+        let len = GetWindowTextW(hwnd, &mut buffer);
         if len > 0 {
             let s = String::from_utf16_lossy(&buffer[..len as usize]);
             if s.is_empty() { None } else { Some(s) }

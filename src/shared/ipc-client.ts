@@ -55,6 +55,9 @@ export function listAlarms(upcomingOnly?: boolean): Promise<Alarm[]> {
 export function getMissedAlarmsSummary(): Promise<Alarm[]> {
   return invoke('get_missed_alarms_summary');
 }
+export function acknowledgeAlarm(id: number): Promise<void> {
+  return invoke('acknowledge_alarm', { id });
+}
 
 // ── Window & OS Behavior Commands ────────────────────────────────────────────
 
@@ -182,6 +185,10 @@ type EventPayloadMap = {
   'context-changed': { context: ContextState };
   'xp-changed': { xp: number; level: number };
   'all-tasks-completed': Record<string, never>;
+  'overdue-detected': { count: number };
+  'overdue-cleared': Record<string, never>;
+  'content-ingested': { kind: string };
+  'alarm-acknowledged': { id: number };
 };
 
 export function onEvent<E extends keyof EventPayloadMap>(

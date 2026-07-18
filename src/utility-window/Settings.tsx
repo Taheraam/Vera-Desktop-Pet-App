@@ -1,1 +1,0 @@
-// Settings panel — render engine, hotkey, auto-start, permissions, AI providers, audit log
