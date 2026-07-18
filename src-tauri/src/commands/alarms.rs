@@ -14,7 +14,7 @@ pub struct Alarm {
     pub acknowledged_at: Option<i64>,
 }
 
-fn row_to_alarm(row: &rusqlite::Row) -> rusqlite::Result<Alarm> {
+pub fn row_to_alarm(row: &rusqlite::Row) -> rusqlite::Result<Alarm> {
     Ok(Alarm {
         id: row.get(0)?,
         task_id: row.get(1)?,
