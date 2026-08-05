@@ -70,10 +70,10 @@ export function PetWindow(): React.ReactElement {
         const scale = await win.scaleFactor();
         const canvas = canvasRef.current;
         if (canvas) {
-          canvas.width = size.width * scale;
-          canvas.height = size.height * scale;
-          canvas.style.width = `${size.width}px`;
-          canvas.style.height = `${size.height}px`;
+          canvas.width = size.width;
+          canvas.height = size.height;
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
         }
       } catch {
         // Window not ready yet
