@@ -117,6 +117,14 @@ export function PetWindow(): React.ReactElement {
     }
   }, [petMode]);
 
+  const handleMouseDown = useCallback(async () => {
+    if (petMode === 'asleep') {
+      bridgeRef.current?.interruptParkedCycle();
+      await setPetMode('awake');
+    }
+    resetIdleTimer();
+  }, [petMode, resetIdleTimer]);
+
   useEffect(() => {
     resetIdleTimer();
     return () => {
@@ -214,7 +222,7 @@ export function PetWindow(): React.ReactElement {
       onDrop={handleDrop}
       onDoubleClick={handleDoubleClick}
       onMouseMove={handleMouseMove}
-      onMouseDown={resetIdleTimer}
+      onMouseDown={handleMouseDown}
       onKeyDown={resetIdleTimer}
       style={{
         position: 'fixed',
