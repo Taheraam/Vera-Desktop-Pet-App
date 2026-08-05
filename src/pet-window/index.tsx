@@ -6,9 +6,9 @@ import { ingestDroppedContent, setPetMode, onEvent, getSettings } from '../share
 import { GreetBubble } from './GreetBubble';
 
 const SPRITES_BASE = '/src/assets/sprites/';
-const GREETING_DURATION_MS = 4000;
+const GREETING_DURATION_MS = 5000;
 const BLINK_FRAME_INDEX = 1;
-const IDLE_PARK_TIMEOUT_MS = 10_000;
+const IDLE_PARK_TIMEOUT_MS = 10000;
 
 export function PetWindow(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);

@@ -80,11 +80,13 @@ pub(crate) fn do_set_pet_mode(app: &AppHandle, mode: PetMode) -> Result<PetState
     let current = read_pet_mode(app);
     let mode_str = mode.as_str();
 
-    // Idempotent: if already in requested mode, return current state
+    // Idempotent: if already in requested mode, just emit the event so frontend stays in sync
     if current == mode_str {
         let state = if current == "asleep" {
+            let _ = app.emit("pet-state-changed", serde_json::json!({ "state": "asleep" }));
             PetState::Asleep
         } else {
+            let _ = app.emit("pet-state-changed", serde_json::json!({ "state": "awake" }));
             PetState::Awake
         };
         return Ok(state);
