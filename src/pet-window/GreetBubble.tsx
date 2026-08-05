@@ -18,7 +18,7 @@ export function GreetBubble({ message, visible, onAutoHide, durationMs }: GreetB
     <div
       style={{
         position: 'absolute',
-        top: -66,
+        top: 4,
         left: '50%',
         transform: 'translateX(-50%)',
         width: 180,

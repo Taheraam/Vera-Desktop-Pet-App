@@ -75,7 +75,10 @@ fn is_any_fullscreen() -> bool {
         let mw = mi.rcMonitor.right - mi.rcMonitor.left;
         let mh = mi.rcMonitor.bottom - mi.rcMonitor.top;
 
-        ww >= mw * 95 / 100 && wh >= mh * 95 / 100
+        // Only trigger on TRUE fullscreen (like a game or F11 video)
+        // by checking if the window matches or exceeds the full monitor bounds.
+        // A maximized window is usually the size of rcWork, which is smaller than rcMonitor.
+        ww >= mw && wh >= mh
     }
 }
 

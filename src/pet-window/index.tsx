@@ -2,14 +2,13 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
 import { PetRenderer } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
-import { ingestDroppedContent, setPetMode, onEvent, acknowledgeAlarm, getSettings } from '../shared/ipc-client';
-import type { AlarmFiredPayload } from '../shared/types';
+import { ingestDroppedContent, setPetMode, onEvent, getSettings } from '../shared/ipc-client';
 import { GreetBubble } from './GreetBubble';
 
 const SPRITES_BASE = '/src/assets/sprites/';
-const CARD_AUTO_DISMISS_MS = 30_000;
 const GREETING_DURATION_MS = 4000;
 const BLINK_FRAME_INDEX = 1;
+const IDLE_PARK_TIMEOUT_MS = 10_000;
 
 export function PetWindow(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,13 +16,10 @@ export function PetWindow(): React.ReactElement {
   const bridgeRef = useRef<AnimationStateBridge | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [petMode, setPetModeState] = useState<'awake' | 'asleep'>('awake');
-  const [alarmCard, setAlarmCard] = useState<AlarmFiredPayload | null>(null);
-  const alarmCardRef = useRef<AlarmFiredPayload | null>(null);
-  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [greetingMessage, setGreetingMessage] = useState("Hi! I'm here to help you stay on track.");
   const [showGreeting, setShowGreeting] = useState(false);
-  const prevPetModeRef = useRef<'awake' | 'asleep' | null>(null);
   const launchGreetingShownRef = useRef(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,6 +37,12 @@ export function PetWindow(): React.ReactElement {
 
         bridge = new AnimationStateBridge(renderer);
         bridgeRef.current = bridge;
+
+        // Wire the onWake callback — triggers greeting on double-click wake
+        bridge.onWake(async () => {
+          await triggerGreeting();
+        });
+
         await bridge.start();
 
         // Show launch greeting once everything is ready
@@ -100,91 +102,36 @@ export function PetWindow(): React.ReactElement {
     setShowGreeting(false);
   }, []);
 
-  // Detect wake transition for greeting
+  // Pet-window-local idle detection: 10s of no mouse activity → auto-park
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    if (petMode === 'awake') {
+      idleTimerRef.current = setTimeout(() => {
+        console.log('[pet] idle timer fired, calling setPetMode(asleep)');
+        setPetMode('asleep').then(() => {
+          console.log('[pet] setPetMode(asleep) resolved successfully');
+        }).catch((err) => {
+          console.error('[pet] setPetMode(asleep) failed:', err);
+        });
+      }, IDLE_PARK_TIMEOUT_MS);
+    }
+  }, [petMode]);
+
+  useEffect(() => {
+    resetIdleTimer();
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [resetIdleTimer]);
+
+  // Track pet mode state via event
   useEffect(() => {
     const unlisten = onEvent('pet-state-changed', ({ state }) => {
-      const prevMode = prevPetModeRef.current;
-      const newMode = state === 'asleep' ? 'asleep' : 'awake';
-      prevPetModeRef.current = newMode;
-      setPetModeState(newMode);
-
-      // Show greeting when waking from asleep
-      if (prevMode === 'asleep' && newMode === 'awake') {
-        triggerGreeting();
-      }
-    });
-    prevPetModeRef.current = 'awake';
-    return () => { unlisten.then((fn) => fn()); };
-  }, [triggerGreeting]);
-
-  // Listen for pet-relocate → animate window position (bounded tween)
-  useEffect(() => {
-    const win = getCurrentWindow();
-    const unlisten = onEvent('pet-relocate', async ({ targetX, targetY, durationMs }) => {
-      const startPos = await win.outerPosition();
-      const startX = startPos.x;
-      const startY = startPos.y;
-      const startTime = performance.now();
-
-      const animate = (now: number) => {
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / durationMs, 1);
-        // Ease-out cubic
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const x = Math.round(startX + (targetX - startX) * eased);
-        const y = Math.round(startY + (targetY - startY) * eased);
-        win.setPosition(new LogicalPosition(x, y));
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-        // On arrival, animation-state.ts handles walk→sleep transition
-      };
-      requestAnimationFrame(animate);
+      setPetModeState(state === 'asleep' ? 'asleep' : 'awake');
+      resetIdleTimer();
     });
     return () => { unlisten.then((fn) => fn()); };
-  }, []);
-
-  // Listen for alarm-fired → show bring-me-a-note card
-  useEffect(() => {
-    const unlisten = onEvent('alarm-fired', (p: AlarmFiredPayload) => {
-      setAlarmCard(p);
-      alarmCardRef.current = p;
-
-      // Auto-dismiss after timeout
-      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-      dismissTimerRef.current = setTimeout(() => {
-        handleDismissCard();
-      }, CARD_AUTO_DISMISS_MS);
-    });
-    return () => { unlisten.then((fn) => fn()); };
-  }, []);
-
-  const handleDismissCard = useCallback(async () => {
-    const card = alarmCardRef.current;
-    if (!card) return;
-    try {
-      await acknowledgeAlarm(card.alarm.id);
-    } catch { /* not critical */ }
-    setAlarmCard(null);
-    alarmCardRef.current = null;
-    if (dismissTimerRef.current) {
-      clearTimeout(dismissTimerRef.current);
-      dismissTimerRef.current = null;
-    }
-  }, []);
-
-  // Listen for alarm-acknowledged → hide card
-  useEffect(() => {
-    const unlisten = onEvent('alarm-acknowledged', () => {
-      setAlarmCard(null);
-      alarmCardRef.current = null;
-      if (dismissTimerRef.current) {
-        clearTimeout(dismissTimerRef.current);
-        dismissTimerRef.current = null;
-      }
-    });
-    return () => { unlisten.then((fn) => fn()); };
-  }, []);
+  }, [resetIdleTimer]);
 
   // Listen for Tauri file-drop events
   useEffect(() => {
@@ -200,13 +147,15 @@ export function PetWindow(): React.ReactElement {
         }
       }
       setDragOver(event.payload.type === 'over' || event.payload.type === 'drop');
+      resetIdleTimer();
     });
     return () => { unlistenPromise.then((fn) => fn()); };
-  }, []);
+  }, [resetIdleTimer]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
+    resetIdleTimer();
   };
 
   const handleDragLeave = () => {
@@ -217,7 +166,6 @@ export function PetWindow(): React.ReactElement {
     e.preventDefault();
     setDragOver(false);
 
-    // Handle text drops from other apps
     const text = e.dataTransfer.getData('text');
     if (text) {
       try {
@@ -226,13 +174,16 @@ export function PetWindow(): React.ReactElement {
         console.error('Failed to ingest dropped text:', err);
       }
     }
+    resetIdleTimer();
   };
 
   const handleDoubleClick = async () => {
     try {
       if (petMode === 'asleep') {
-        // Wake only — does not open utility window on this same click
+        // Interrupt parked cycle, wake the pet
+        bridgeRef.current?.interruptParkedCycle();
         await setPetMode('awake');
+        // onWake callback in bridge already triggers greet bubble
       } else if (petMode === 'awake') {
         // Open utility window adjacent to pet's current position
         const win = getCurrentWindow();
@@ -248,7 +199,12 @@ export function PetWindow(): React.ReactElement {
     } catch (err) {
       console.error('Double-click handler failed:', err);
     }
+    resetIdleTimer();
   };
+
+  const handleMouseMove = useCallback(() => {
+    resetIdleTimer();
+  }, [resetIdleTimer]);
 
   return (
     <div
@@ -257,6 +213,9 @@ export function PetWindow(): React.ReactElement {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onDoubleClick={handleDoubleClick}
+      onMouseMove={handleMouseMove}
+      onMouseDown={resetIdleTimer}
+      onKeyDown={resetIdleTimer}
       style={{
         position: 'fixed',
         top: 0,
@@ -267,6 +226,7 @@ export function PetWindow(): React.ReactElement {
         outline: dragOver ? '2px dashed #e8765a' : 'none',
         outlineOffset: '-2px',
       }}
+      tabIndex={0}
     >
       <canvas
         ref={canvasRef}
@@ -275,6 +235,7 @@ export function PetWindow(): React.ReactElement {
           width: '100%',
           height: '100%',
           pointerEvents: 'none',
+          imageRendering: 'pixelated',
         }}
       />
 
@@ -284,55 +245,6 @@ export function PetWindow(): React.ReactElement {
         onAutoHide={handleGreetingAutoHide}
         durationMs={GREETING_DURATION_MS}
       />
-
-      {alarmCard && (
-        <BringMeANoteCard
-          title={alarmCard.task?.title ?? 'Alarm'}
-          onDismiss={handleDismissCard}
-        />
-      )}
-    </div>
-  );
-}
-
-function BringMeANoteCard({ title, onDismiss }: { title: string; onDismiss: () => void }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 200,
-        background: '#faf7f2',
-        border: '2px solid #e8765a',
-        borderRadius: 12,
-        padding: '12px 16px',
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: 13,
-        color: '#2a2a2a',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-        textAlign: 'center',
-        pointerEvents: 'auto',
-        zIndex: 10,
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
-      <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>Alarm from VeraPet</div>
-      <button
-        onClick={onDismiss}
-        style={{
-          background: '#e8765a',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 8,
-          padding: '6px 16px',
-          fontSize: 12,
-          cursor: 'pointer',
-        }}
-      >
-        Dismiss
-      </button>
     </div>
   );
 }

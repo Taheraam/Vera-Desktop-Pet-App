@@ -11,24 +11,15 @@ export interface SpriteSheetMeta {
 import type { AnimationState } from '../shared/types';
 
 export const ALL_STATES: AnimationState[] = [
-  'idle', 'walk', 'sleep', 'waking_up', 'happy', 'worried',
-  'celebrate', 'typing_focused', 'eating', 'consent_ask', 'bring_me_a_note',
+  'idle', 'sleep', 'waking_up', 'eating',
 ];
 
 // Render throttle target per state (frames per second).
-// Looping ambient states use ~8fps; one-off emotional states use ~10fps.
 const THROTTLE_FPS: Record<string, number> = {
   idle: 8,
   sleep: 8,
-  worried: 8,
-  typing_focused: 8,
-  consent_ask: 8,
-  walk: 10,
-  happy: 10,
-  celebrate: 10,
-  eating: 10,
   waking_up: 7,
-  bring_me_a_note: 7,
+  eating: 10,
 };
 
 interface SpriteSheetData {
@@ -123,52 +114,71 @@ export class PetRenderer {
   }
 
   async loadSprites(basePath: string): Promise<void> {
-    const promises = ALL_STATES.map(async (state) => {
-      const [meta, image] = await Promise.all([
-        this.fetchJSON<SpriteSheetMeta>(`${basePath}${state}.json`),
-        this.loadImage(`${basePath}${state}.png`),
-      ]);
-      this.sprites.set(state, { image, meta });
-    });
+    const results = await Promise.allSettled(
+      ALL_STATES.map(async (state) => {
+        const [meta, image] = await Promise.all([
+          this.fetchJSON<SpriteSheetMeta>(`${basePath}${state}.json`),
+          this.loadImage(`${basePath}${state}.png`),
+        ]);
+        this.sprites.set(state, { image, meta });
+      }),
+    );
 
-    await Promise.all(promises);
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    if (failed > 0) {
+      console.warn(`[pet-renderer] ${failed}/${ALL_STATES.length} sprites failed to load, using placeholders for missing states`);
+    }
     this.spritesReady = true;
   }
 
   render(): void {
-    const sprite = this.sprites.get(this.fsm.currentState);
-    if (!sprite) return;
-
-    const { image, meta } = sprite;
-    const frameX = this.fsm.currentFrameIndex * meta.frameWidth;
-
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Apply horizontal mirror when facing left (sprites are generated right-facing only)
-    if (this.fsm.facingLeft) {
-      this.ctx.save();
+    const cw = this.canvas.width;
+    const ch = this.canvas.height;
+
+    // The window is 260×210 logical. Compute scale for DPI independence.
+    const scale = cw / 260;
+
+    const sprite = this.sprites.get(this.fsm.currentState);
+    if (sprite) {
+      const { image, meta } = sprite;
+      const frameX = this.fsm.currentFrameIndex * meta.frameWidth;
+
+      // Fixed anchor: sprite top-left at (66, 68) in logical space
+      // Display at 128×128 logical (2× native 64×64)
+      const sx = 66 * scale;
+      const sy = 68 * scale;
+      const dw = 128 * scale;
+      const dh = 128 * scale;
+
       this.ctx.imageSmoothingEnabled = false;
-      this.ctx.scale(-1, 1);
-      this.ctx.translate(-this.canvas.width, 0);
 
-      this.ctx.drawImage(
-        image,
-        frameX, 0,
-        meta.frameWidth, meta.frameHeight,
-        0, 0,
-        this.canvas.width, this.canvas.height,
-      );
-
-      this.ctx.restore();
+      if (this.fsm.facingLeft) {
+        this.ctx.save();
+        this.ctx.scale(-1, 1);
+        this.ctx.drawImage(
+          image,
+          frameX, 0, meta.frameWidth, meta.frameHeight,
+          -(sx + dw), sy, dw, dh,
+        );
+        this.ctx.restore();
+      } else {
+        this.ctx.drawImage(
+          image,
+          frameX, 0, meta.frameWidth, meta.frameHeight,
+          sx, sy, dw, dh,
+        );
+      }
     } else {
-      this.ctx.imageSmoothingEnabled = false;
-      this.ctx.drawImage(
-        image,
-        frameX, 0,
-        meta.frameWidth, meta.frameHeight,
-        0, 0,
-        this.canvas.width, this.canvas.height,
-      );
+      // Placeholder: orange circle for states without a loaded sprite
+      const cx = cw / 2;
+      const cy = ch / 2;
+      const r = 64 * scale;
+      this.ctx.fillStyle = '#e8765a';
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      this.ctx.fill();
     }
   }
 

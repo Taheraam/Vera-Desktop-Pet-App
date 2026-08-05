@@ -3,7 +3,7 @@ pub mod notes;
 pub mod alarms;
 pub mod window;
 pub mod alarm_scheduler;
-pub mod hotkey;
+pub mod fullscreen;
 
 pub mod gamification;
 pub mod provider;

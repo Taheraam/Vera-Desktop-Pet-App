@@ -1,27 +1,16 @@
 import type { UnlistenFn } from '@tauri-apps/api/event';
-import type {
-  AnimationState, ContextState,
-  AgentConsentRequestedPayload, AgentActionResolvedPayload,
-  AlarmFiredPayload, TaskCompletedPayload,
-  OverdueDetectedPayload, OverdueClearedPayload,
-  ContentIngestedPayload, AlarmAcknowledgedPayload,
-} from '../shared/types';
+import type { AnimationState } from '../shared/types';
 import { onEvent } from '../shared/ipc-client';
 import { PetRenderer } from './canvas-renderer';
 
-// Priority tiers (lower number = higher priority)
+const PARKED_SLEEP_MS = 15_000;
+const PARKED_EATING_MS = 15_000;
+
 const PRIORITY: Record<AnimationState, number> = {
   waking_up: 0,
-  consent_ask: 1,
-  bring_me_a_note: 2,
-  celebrate: 3,
-  happy: 4,
-  eating: 5,
-  sleep: 6,
-  walk: 7,
-  worried: 8,
-  typing_focused: 9,
-  idle: 10,
+  eating: 1,
+  sleep: 2,
+  idle: 3,
 };
 
 export class AnimationStateBridge {
@@ -30,69 +19,46 @@ export class AnimationStateBridge {
   private unlisteners: UnlistenFn[] = [];
   private busy = false;
   private petMode: 'awake' | 'asleep' = 'awake';
+  private isParked = false;
+  private parkedCycleTimer: ReturnType<typeof setTimeout> | null = null;
+  private parkedPhase: 'sleep' | 'waking_up' | 'eating' = 'sleep';
+
+  private onWakeCallback: (() => void) | null = null;
 
   constructor(renderer: PetRenderer) {
     this.renderer = renderer;
     this.renderer.fsm.onAnimationComplete(() => this.onAnimationComplete());
   }
 
+  onWake(cb: () => void): void {
+    this.onWakeCallback = cb;
+  }
+
   async start(): Promise<void> {
     const tasks: Promise<UnlistenFn>[] = [
-      onEvent('task-completed', (_p: TaskCompletedPayload) => {
-        this.requestState('happy');
-      }),
-
-      onEvent('all-tasks-completed', () => {
-        this.requestState('celebrate');
-      }),
-
-      onEvent('alarm-fired', (_p: AlarmFiredPayload) => {
-        this.requestState('bring_me_a_note');
-      }),
-
       onEvent('pet-state-changed', (p: { state: string }) => {
+        const prevMode = this.petMode;
         this.petMode = p.state === 'asleep' ? 'asleep' : 'awake';
-      }),
+        console.log('[bridge] pet-state-changed:', p.state, 'prevMode:', prevMode);
 
-      onEvent('pet-relocate', () => {
-        this.requestState('walk');
-      }),
-
-      onEvent('fullscreen-cleared', () => {
-        this.requestState('waking_up');
-      }),
-
-      onEvent('context-changed', (p: { context: ContextState }) => {
-        if (p.context === 'coding') {
-          this.requestState('typing_focused');
-        } else {
-          this.requestState('idle');
+        if (p.state === 'asleep' && prevMode === 'awake') {
+          console.log('[bridge] starting parked cycle');
+          this.startParkedCycle();
+        } else if (p.state === 'awake' && prevMode === 'asleep') {
+          this.stopParkedCycle();
+          // On wake: waking_up plays once, then idle (via onAnimationComplete)
+          this.applyState('waking_up');
+          this.onWakeCallback?.();
         }
       }),
 
-      onEvent('agent-consent-requested', (_p: AgentConsentRequestedPayload) => {
-        this.requestState('consent_ask');
+      onEvent('fullscreen-cleared', () => {
+        this.applyState('waking_up');
       }),
 
-      onEvent('agent-action-resolved', (_p: AgentActionResolvedPayload) => {
-        this.requestState('idle');
-      }),
-
-      // ── Milestone 6: Deep Interaction & Gamification ──
-      onEvent('overdue-detected', (_p: OverdueDetectedPayload) => {
-        this.requestState('worried');
-      }),
-
-      onEvent('overdue-cleared', (_p: OverdueClearedPayload) => {
-        this.requestState('idle');
-      }),
-
-      onEvent('content-ingested', (_p: ContentIngestedPayload) => {
+      onEvent('content-ingested', () => {
+        // Play eating animation once (non-looping), then return to idle via FSM
         this.requestState('eating');
-      }),
-
-      onEvent('alarm-acknowledged', (_p: AlarmAcknowledgedPayload) => {
-        this.requestState('idle');
       }),
     ];
 
@@ -100,10 +66,23 @@ export class AnimationStateBridge {
   }
 
   stop(): void {
+    this.stopParkedCycle();
     for (const fn of this.unlisteners) {
       fn();
     }
     this.unlisteners = [];
+  }
+
+  /** Interrupt the parked cycle at any point — called on double-click wake. */
+  interruptParkedCycle(): void {
+    if (!this.isParked) return;
+    this.stopParkedCycle();
+    // waking_up always preempts (highest priority)
+    this.pendingState = null;
+    this.renderer.fsm.transition('waking_up');
+    this.busy = true;
+    // No optimistic write to petMode or onWakeCallback here —
+    // the pet-state-changed event listener is the single canonical path.
   }
 
   requestState(state: AnimationState): void {
@@ -115,7 +94,6 @@ export class AnimationStateBridge {
       return;
     }
 
-    // If currently busy with a non-looping animation, queue the request
     if (this.busy) {
       if (
         this.pendingState === null ||
@@ -129,13 +107,66 @@ export class AnimationStateBridge {
     this.applyState(state);
   }
 
-  // Called when a non-looping animation reaches its final frame
+  // ── Parked Cycle ────────────────────────────────────────────────────────────
+
+  private startParkedCycle(): void {
+    this.isParked = true;
+    this.parkedPhase = 'sleep';
+    this.applyState('sleep');
+    this.scheduleNextParkedStep(PARKED_SLEEP_MS);
+  }
+
+  private stopParkedCycle(): void {
+    this.isParked = false;
+    if (this.parkedCycleTimer !== null) {
+      clearTimeout(this.parkedCycleTimer);
+      this.parkedCycleTimer = null;
+    }
+  }
+
+  private scheduleNextParkedStep(ms: number): void {
+    if (!this.isParked) return;
+    this.parkedCycleTimer = setTimeout(() => {
+      if (!this.isParked) return;
+      this.advanceParkedCycle();
+    }, ms);
+  }
+
+  private advanceParkedCycle(): void {
+    if (!this.isParked) return;
+
+    switch (this.parkedPhase) {
+      case 'sleep':
+        // sleep → waking_up (one-shot, onAnimationComplete handles next)
+        this.parkedPhase = 'waking_up';
+        this.applyState('waking_up');
+        break;
+      case 'waking_up':
+        // waking_up → eating (technically this path shouldn't fire
+        // because onAnimationComplete handles waking_up completion)
+        this.parkedPhase = 'eating';
+        this.applyState('eating');
+        this.scheduleNextParkedStep(PARKED_EATING_MS);
+        break;
+      case 'eating':
+        // eating → sleep → repeat
+        this.parkedPhase = 'sleep';
+        this.applyState('sleep');
+        this.scheduleNextParkedStep(PARKED_SLEEP_MS);
+        break;
+    }
+  }
+
+  // ── FSM ─────────────────────────────────────────────────────────────────────
+
   private onAnimationComplete(): void {
     this.busy = false;
 
-    // Auto-transition walk → sleep when entering asleep mode
-    if (this.pendingState === null && this.petMode === 'asleep' && this.renderer.fsm.currentState === 'walk') {
-      this.applyState('sleep');
+    // If we're in the parked cycle and waking_up just finished → go to eating
+    if (this.isParked && this.parkedPhase === 'waking_up') {
+      this.parkedPhase = 'eating';
+      this.applyState('eating');
+      this.scheduleNextParkedStep(PARKED_EATING_MS);
       return;
     }
 
@@ -147,9 +178,7 @@ export class AnimationStateBridge {
   }
 
   private applyState(state: AnimationState): void {
-    const nonLooping: AnimationState[] = [
-      'waking_up', 'happy', 'celebrate', 'eating', 'bring_me_a_note',
-    ];
+    const nonLooping: AnimationState[] = ['waking_up', 'eating'];
     this.renderer.fsm.transition(state);
     if (nonLooping.includes(state)) {
       this.busy = true;

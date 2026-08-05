@@ -137,11 +137,6 @@ export function getXpState(): Promise<{ xp: number; level: number }> {
   return invoke('get_xp_state');
 }
 
-// ── Debug Commands ───────────────────────────────────────────────────────────
-
-export function debugCheckAlarms(): Promise<number> {
-  return invoke('debug_check_alarms');
-}
 
 // ── Settings Commands ────────────────────────────────────────────────────────
 
@@ -165,7 +160,6 @@ type EventPayloadMap = {
   'alarm-fired': { alarm: Alarm; task: Task | null };
   'missed-alarms-ready': { alarms: Alarm[] };
   'pet-state-changed': { state: PetState };
-  'pet-relocate': { targetX: number; targetY: number; durationMs: number };
   'fullscreen-detected': Record<string, never>;
   'fullscreen-cleared': Record<string, never>;
   'agent-consent-requested': {

@@ -83,57 +83,27 @@ export interface AgentAction {
 
 export type ContextState = 'coding' | 'browsing' | 'idle' | 'unknown';
 
-// Animation states (shared between pet-window renderer and event bridge)
+// Animation states (4-state set: active pet)
 export type AnimationState =
   | 'idle'
-  | 'walk'
   | 'sleep'
   | 'waking_up'
-  | 'happy'
-  | 'worried'
-  | 'celebrate'
-  | 'typing_focused'
-  | 'eating'
-  | 'consent_ask'
-  | 'bring_me_a_note';
+  | 'eating';
 
 // ── Event payloads (backend → both windows) ─────────────────────────────────
 
 export interface TaskCreatedPayload { task: Task; }
 export interface TaskUpdatedPayload { task: Task; }
-export interface TaskCompletedPayload { task: Task; }
 export interface TaskDeletedPayload { id: number; }
 export interface NoteUpdatedPayload { note: Note; }
 export interface NoteDeletedPayload { id: number; }
 export interface AlarmCreatedPayload { alarm: Alarm; }
-export interface AlarmFiredPayload { alarm: Alarm; task: Task | null; }
 export interface MissedAlarmsReadyPayload { alarms: Alarm[]; }
 export interface PetStateChangedPayload { state: PetState; }
-export interface PetRelocatePayload { targetX: number; targetY: number; durationMs: number; }
-export interface AgentConsentRequestedPayload {
-  delegationId: string;
-  agentActionId: number;
-  actionType: string;
-  targetSummary: string;
-  mcpServer: string;
-}
-export interface AgentActionResolvedPayload {
-  delegationId: string;
-  agentActionId: number;
-  status: string;
-  detail?: string;
-}
 export interface DelegationCompletedPayload {
   delegationId: string;
   finalMessage: string;
 }
-export interface ContextChangedPayload { context: ContextState; }
-
-// ── Milestone 6 event payloads ────────────────────────────────────────────────
-export interface OverdueDetectedPayload { count: number; }
-export interface OverdueClearedPayload { }
-export interface ContentIngestedPayload { kind: string; }
-export interface AlarmAcknowledgedPayload { id: number; }
 
 // ── Tauri plugin & utility types ─────────────────────────────────────────────
 

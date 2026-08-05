@@ -1,7 +1,7 @@
 mod db;
 mod commands;
 
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri::{Manager, PhysicalPosition};
 
 fn run() {
     tauri::Builder::default()
@@ -14,16 +14,6 @@ fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_window_state::Builder::new().build())
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    if event.state() == ShortcutState::Pressed {
-                        commands::hotkey::handle_call_pet(app);
-                    }
-                })
-                .build(),
-        )
         .setup(|app| {
             // Run migrations then seed last_alive_timestamp
             let app_handle = app.handle().clone();
@@ -33,6 +23,9 @@ fn run() {
             // Start the alarm scheduler background thread
             commands::alarm_scheduler::start(app_handle.clone());
 
+            // Start fullscreen detection → hide pet during fullscreen, play waking_up on restore
+            commands::fullscreen::start_detector(app_handle.clone());
+
             // Initialize MCP and consent registries
             commands::mcp::init_registry(&app_handle)?;
             commands::agent::init_registry(&app_handle)?;
@@ -40,22 +33,32 @@ fn run() {
             // Initialize context engine
             commands::context::init_registry(&app_handle)?;
 
-            // Create the pet window (transparent, always-on-top, 220x140)
+            // Create the pet window (transparent, always-on-top, 260x210)
             tauri::webview::WebviewWindowBuilder::new(
                 app,
                 "pet",
                 tauri::WebviewUrl::App("src/pet-window/index.html".into()),
             )
             .title("VeraPet")
-            .inner_size(220.0, 140.0)
+            .inner_size(260.0, 210.0)
             .transparent(true)
             .decorations(false)
+            .shadow(false)
             .resizable(false)
             .minimizable(false)
             .closable(false)
             .always_on_top(true)
             .skip_taskbar(true)
             .build()?;
+
+            // Position pet at work-area corner on launch (DPI-aware)
+            {
+                let handle = app.handle().clone();
+                let (cx, cy) = commands::window::compute_corner_target(&handle);
+                if let Some(win) = handle.get_webview_window("pet") {
+                    let _ = win.set_position(PhysicalPosition::new(cx, cy));
+                }
+            }
 
             // Create the utility window (hidden by default)
             tauri::webview::WebviewWindowBuilder::new(
@@ -67,10 +70,6 @@ fn run() {
             .inner_size(400.0, 600.0)
             .visible(false)
             .build()?;
-
-            // Register the "Call Pet" global hotkey (Alt+P)
-            let shortcut = Shortcut::new(Some(Modifiers::ALT), Code::KeyP);
-            app.global_shortcut().register(shortcut)?;
 
             Ok(())
         })
@@ -94,7 +93,6 @@ fn run() {
             commands::window::get_monitor_layout,
             commands::gamification::ingest_dropped_content,
             commands::gamification::get_xp_state,
-            commands::alarm_scheduler::debug_check_alarms,
             commands::provider::add_provider_key,
             commands::provider::remove_provider_key,
             commands::provider::verify_provider_key,

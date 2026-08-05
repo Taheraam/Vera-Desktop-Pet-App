@@ -1,7 +1,7 @@
-{
-  "frameWidth": 64,
-  "frameHeight": 64,
-  "frameCount": 4,
-  "fps": 7,
-  "loop": false
+﻿{
+    "frameHeight":  64,
+    "loop":  false,
+    "frameWidth":  64,
+    "fps":  4,
+    "frameCount":  2
 }

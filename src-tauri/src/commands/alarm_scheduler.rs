@@ -4,13 +4,19 @@ use tauri::{AppHandle, Emitter};
 use crate::db;
 
 /// Start the alarm scheduler background thread.
-/// Polls for due alarms every 10 seconds (immediate first check).
+/// Uses a smart sleep: wakes at the next alarm's fire_at, or every 60s if idle.
 pub fn start(app: AppHandle) {
-    eprintln!("[alarm_scheduler] starting scheduler thread");
     std::thread::spawn(move || {
+        let conn = match db::get_connection(&app) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("[alarm_scheduler] failed to open DB: {e}");
+                return;
+            }
+        };
+
         loop {
-            eprintln!("[alarm_scheduler] polling for due alarms...");
-            match fire_due_alarms(&app) {
+            match fire_due_alarms(&app, &conn) {
                 Ok(count) => {
                     if count > 0 {
                         eprintln!("[alarm_scheduler] fired {count} alarm(s)");
@@ -20,48 +26,28 @@ pub fn start(app: AppHandle) {
                     eprintln!("[alarm_scheduler] error: {e}");
                 }
             }
-            std::thread::sleep(Duration::from_secs(10));
+            let sleep_secs = next_alarm_delay(&conn);
+            std::thread::sleep(Duration::from_secs(sleep_secs));
         }
     });
 }
 
-/// Debug command: manually trigger a due-alarm check from the frontend.
-#[tauri::command]
-pub fn debug_check_alarms(app: tauri::AppHandle) -> Result<usize, String> {
-    eprintln!("[alarm_scheduler] debug_check_alarms called from frontend");
-    fire_due_alarms(&app)
+/// Compute how long to sleep until the next pending alarm (capped at 60s).
+fn next_alarm_delay(conn: &rusqlite::Connection) -> u64 {
+    let now = db::now();
+    match conn.query_row(
+        "SELECT MIN(fire_at) FROM alarms WHERE fired_at IS NULL AND fire_at > ?1",
+        rusqlite::params![now],
+        |row| row.get::<_, Option<i64>>(0),
+    ) {
+        Ok(Some(next)) => ((next - now) as u64).clamp(1, 60),
+        _ => 60,
+    }
 }
 
 /// Returns the number of alarms fired.
-fn fire_due_alarms(app: &AppHandle) -> Result<usize, String> {
-    let conn = db::get_connection(app)?;
+fn fire_due_alarms(app: &AppHandle, conn: &rusqlite::Connection) -> Result<usize, String> {
     let now = db::now();
-
-    eprintln!("[alarm_scheduler] now={now}, checking for due alarms...");
-
-    // First log all alarms in the DB for diagnostics
-    {
-        let mut count_stmt = conn
-            .prepare("SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms ORDER BY id")
-            .map_err(|e| e.to_string())?;
-        let all: Vec<crate::commands::alarms::Alarm> = count_stmt
-            .query_map([], |row| crate::commands::alarms::row_to_alarm(row))
-            .map_err(|e| e.to_string())?
-            .collect::<Result<_, _>>()
-            .map_err(|e| e.to_string())?;
-        if all.is_empty() {
-            eprintln!("[alarm_scheduler] no alarms in DB");
-        } else {
-            for a in &all {
-                eprintln!(
-                    "[alarm_scheduler] alarm id={} task_id={:?} fire_at={} fired_at={:?} missed={} now={now} due={}",
-                    a.id, a.task_id, a.fire_at, a.fired_at, a.missed,
-                    a.fire_at <= now
-                );
-    }
-
-        }
-    }
 
     let mut stmt = conn
         .prepare(
@@ -88,11 +74,8 @@ fn fire_due_alarms(app: &AppHandle) -> Result<usize, String> {
 
     let count = alarms.len();
     if count == 0 {
-        eprintln!("[alarm_scheduler] no due alarms found");
         return Ok(0);
     }
-
-    eprintln!("[alarm_scheduler] found {count} due alarm(s), firing...");
 
     for alarm in &alarms {
         // Look up linked task first
@@ -120,7 +103,6 @@ fn fire_due_alarms(app: &AppHandle) -> Result<usize, String> {
         // Emit event FIRST so frontend never misses a notification.
         // If emit fails, we return early WITHOUT marking the alarm as fired,
         // so it will be retried on the next poll cycle.
-        eprintln!("[alarm_scheduler] emitting alarm-fired for id={}", alarm.id);
         app.emit(
             "alarm-fired",
             serde_json::json!({

@@ -1,1 +1,0 @@
-// Tauri event bus definitions and emit helpers for backend→frontend state sync

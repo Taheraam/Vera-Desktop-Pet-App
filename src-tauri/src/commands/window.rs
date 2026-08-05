@@ -46,10 +46,11 @@ pub struct MonitorInfo {
     pub work_area: WorkArea,
 }
 
-const PET_WIDTH: i32 = 64;
-const PET_HEIGHT: i32 = 64;
+
+const SPRITE_SIZE: i32 = 128;       // 2× native 64px — displayed at 128px
+const SPRITE_OFFSET_X: i32 = 66;    // anchored left, not centered
+const SPRITE_OFFSET_Y: i32 = 68;    // anchored low, leaving ~68px above for the bubble
 const MARGIN: i32 = 8;
-const RELOCATE_DURATION_MS: u64 = 1000;
 
 pub(crate) fn read_pet_mode(app: &AppHandle) -> String {
     let conn = match db::get_connection(app) {
@@ -93,17 +94,14 @@ pub(crate) fn do_set_pet_mode(app: &AppHandle, mode: PetMode) -> Result<PetState
 
     match mode {
         PetMode::Asleep => {
-            // Compute corner target from the pet window's current monitor
-            let (target_x, target_y) = compute_corner_target(app);
-
-            let _ = app.emit(
-                "pet-relocate",
-                serde_json::json!({
-                    "targetX": target_x,
-                    "targetY": target_y,
-                    "durationMs": RELOCATE_DURATION_MS,
-                }),
-            );
+            // Instantly snap pet window to work-area corner
+            if let Some(window) = app.get_webview_window("pet") {
+                let (cx, cy) = compute_corner_target(app);
+                println!("[window] set_pet_mode(asleep): snapping to ({}, {})", cx, cy);
+                let _ = window.set_position(tauri::PhysicalPosition::new(cx, cy));
+            } else {
+                println!("[window] set_pet_mode(asleep): no pet window found");
+            }
 
             let _ = app.emit(
                 "pet-state-changed",
@@ -123,28 +121,37 @@ pub(crate) fn do_set_pet_mode(app: &AppHandle, mode: PetMode) -> Result<PetState
     }
 }
 
-fn compute_corner_target(app: &AppHandle) -> (i32, i32) {
-    // Find the monitor the pet window is currently on
-    let monitor = app
-        .get_webview_window("pet")
+pub(crate) fn compute_corner_target(app: &AppHandle) -> (i32, i32) {
+    // Window is 260x210 with a 128x128 sprite anchored at (66, 68).
+    // We want the sprite's bottom-right to be at work_area corner - MARGIN.
+    // Window TL must be offset left and up by the sprite's position within it.
+    // All offsets are logical — multiply by scale_factor for physical coords.
+    let pet_win = app.get_webview_window("pet");
+    let sf = pet_win
+        .as_ref()
+        .and_then(|w| w.scale_factor().ok())
+        .unwrap_or(1.0);
+    let monitor = pet_win
         .and_then(|w| w.current_monitor().ok())
         .flatten();
 
+    let offset_x = ((SPRITE_OFFSET_X + SPRITE_SIZE + MARGIN) as f64 * sf) as i32;
+    let offset_y = ((SPRITE_OFFSET_Y + SPRITE_SIZE + MARGIN) as f64 * sf) as i32;
+
     if let Some(m) = monitor {
         let wa = m.work_area();
-        let cx = wa.position.x + wa.size.width as i32 - PET_WIDTH - MARGIN;
-        let cy = wa.position.y + wa.size.height as i32 - PET_HEIGHT - MARGIN;
+        let cx = wa.position.x + wa.size.width as i32 - offset_x;
+        let cy = wa.position.y + wa.size.height as i32 - offset_y;
         (cx, cy)
     } else {
-        // Fallback: primary monitor
         let primary = app
             .primary_monitor()
             .ok()
             .flatten();
         if let Some(m) = primary {
             let wa = m.work_area();
-            let cx = wa.position.x + wa.size.width as i32 - PET_WIDTH - MARGIN;
-            let cy = wa.position.y + wa.size.height as i32 - PET_HEIGHT - MARGIN;
+            let cx = wa.position.x + wa.size.width as i32 - offset_x;
+            let cy = wa.position.y + wa.size.height as i32 - offset_y;
             (cx, cy)
         } else {
             (0, 0)
