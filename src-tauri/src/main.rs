@@ -1,13 +1,39 @@
+// Release builds on Windows: no console window behind the pet.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod db;
 mod commands;
 
 use tauri::{Manager, PhysicalPosition};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+const DEFAULT_HOTKEY: &str = "Alt+P";
+
+/// Parse the stored hotkey, falling back to Alt+P if it's missing or invalid.
+fn wake_shortcut(stored: &str) -> Shortcut {
+    stored
+        .parse::<Shortcut>()
+        .unwrap_or_else(|_| Shortcut::new(Some(Modifiers::ALT), Code::KeyP))
+}
 
 fn run() {
     tauri::Builder::default()
+        // Must be registered first: a second launch (autostart + manual) focuses the
+        // running pet instead of starting a second scheduler that double-fires alarms.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(w) = app.get_webview_window("pet") {
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }))
         .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations("verapet.db", db::migrations())
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    // Only one shortcut is ever registered: the wake hotkey.
+                    if event.state() == ShortcutState::Pressed {
+                        commands::window::wake_from_hotkey(app);
+                    }
+                })
                 .build(),
         )
         .plugin(tauri_plugin_autostart::init(
@@ -15,25 +41,25 @@ fn run() {
             None,
         ))
         .setup(|app| {
-            // Run migrations then seed last_alive_timestamp
             let app_handle = app.handle().clone();
             db::run_migrations(&app_handle)?;
-            db::seed_app_state(&app_handle)?;
 
-            // Start the alarm scheduler background thread
+            // Background threads
             commands::alarm_scheduler::start(app_handle.clone());
-
-            // Start fullscreen detection → hide pet during fullscreen, play waking_up on restore
             commands::fullscreen::start_detector(app_handle.clone());
 
-            // Initialize MCP and consent registries
+            // MCP, consent and context registries
             commands::mcp::init_registry(&app_handle)?;
             commands::agent::init_registry(&app_handle)?;
-
-            // Initialize context engine
             commands::context::init_registry(&app_handle)?;
 
-            // Create the pet window (transparent, always-on-top, 260x210)
+            // Global wake hotkey. A clash with another app is logged, not fatal.
+            let stored = commands::settings::read_setting(&app_handle, "hotkey", DEFAULT_HOTKEY);
+            if let Err(e) = app.global_shortcut().register(wake_shortcut(&stored)) {
+                eprintln!("[hotkey] could not register '{stored}': {e}");
+            }
+
+            // Pet window: transparent, always-on-top, 260x210 logical
             tauri::webview::WebviewWindowBuilder::new(
                 app,
                 "pet",
@@ -51,7 +77,7 @@ fn run() {
             .skip_taskbar(true)
             .build()?;
 
-            // Position pet at work-area corner on launch (DPI-aware)
+            // Position pet at the work-area corner on launch (DPI-aware)
             {
                 let handle = app.handle().clone();
                 let (cx, cy) = commands::window::compute_corner_target(&handle);
@@ -60,7 +86,7 @@ fn run() {
                 }
             }
 
-            // Create the utility window (hidden by default)
+            // Utility window (hidden by default)
             tauri::webview::WebviewWindowBuilder::new(
                 app,
                 "utility",
@@ -73,10 +99,35 @@ fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| match event {
+            // Closing the utility window used to destroy it, so double-clicking the
+            // pet could never reopen it until restart. Hide it instead.
+            tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "utility" => {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+            // File drops are read here, from paths the OS supplied. The webview never
+            // gets to name a file for the backend to read.
+            tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. })
+                if window.label() == "pet" =>
+            {
+                let app = window.app_handle().clone();
+                let paths = paths.clone();
+                std::thread::spawn(move || {
+                    for p in paths {
+                        if let Err(e) = commands::gamification::ingest_file(&app, &p) {
+                            eprintln!("[drop] {}: {e}", p.display());
+                        }
+                    }
+                });
+            }
+            _ => {}
+        })
         .invoke_handler(tauri::generate_handler![
             commands::tasks::create_task,
             commands::tasks::update_task,
             commands::tasks::complete_task,
+            commands::tasks::reopen_task,
             commands::tasks::delete_task,
             commands::tasks::list_tasks,
             commands::notes::save_note,
@@ -117,4 +168,19 @@ fn run() {
 
 fn main() {
     run();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_hotkey_parses() {
+        assert_eq!(wake_shortcut(DEFAULT_HOTKEY), Shortcut::new(Some(Modifiers::ALT), Code::KeyP));
+    }
+
+    #[test]
+    fn invalid_hotkey_falls_back_to_alt_p() {
+        assert_eq!(wake_shortcut("not a hotkey"), Shortcut::new(Some(Modifiers::ALT), Code::KeyP));
+    }
 }

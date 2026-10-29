@@ -2,73 +2,88 @@
   <img src="src/assets/sprites/LOGO/VeraPet_Logo.png" alt="VeraPet Logo" height="128" />
 
   # VeraPet
-  **Your Smart, Loyal Desktop Companion**
+  **A desktop pet that keeps your tasks, notes and reminders, and stays out of your way.**
 
+  [![CI](https://github.com/Taheraam/Vera-Desktop-Pet-App/actions/workflows/ci.yml/badge.svg)](https://github.com/Taheraam/Vera-Desktop-Pet-App/actions/workflows/ci.yml)
   [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri)](https://v2.tauri.app/)
-  [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
-  [![Rust](https://img.shields.io/badge/Rust-1.80+-000000?logo=rust)](https://www.rust-lang.org/)
+  [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+  [![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust)](https://www.rust-lang.org/)
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 </div>
 
 <br/>
 
-VeraPet is a gamified, AI-powered virtual pet that lives quietly on your desktop. It helps you track tasks, manage notes, and stay on top of your workflow—all while staying out of your way when you need to focus.
+VeraPet is a pixel-art companion that lives in the corner of your Windows desktop. She naps when you're busy, wakes up when you need her, and holds your tasks, notes and reminders in a local SQLite database.
 
 ---
 
 ## ✨ Features
 
-- **DPI-Aware Desktop Pet**: A transparent, always-on-top pet that anchors to your work area so it never covers your taskbar.
-- **Smart Idle & Auto-Park**: Drag the pet anywhere to wake it up. After 10 seconds of inactivity, it falls asleep and automatically parks back in its cozy corner.
-- **Drag & Drop Ingestion**: Drop text snippets or files directly onto VeraPet. It will "eat" them and store them in your notes database.
-- **Smart Fullscreen Detection**: Watching a movie or playing a game? VeraPet detects fullscreen apps and automatically hides itself so it never distracts you.
-- **AI & MCP Agent Integration**: Built-in support for Model Context Protocol (MCP) servers and AI-delegated background tasks.
-- **Gamification**: Earn XP and level up your pet by completing tasks!
+- **Always-on-top, transparent pet window:** a 260×210 window with a 128 px sprite. It parks at the bottom-right of the *work area* (DPI-aware), so it never covers the taskbar.
+- **Awake / asleep:** after 10 s without mouse activity Vera falls asleep and parks in her corner, cycling sleep → wake → snack. Double-click, click, or press **Alt+P** (global hotkey) to wake her in place.
+- **Tasks, notes, reminders:** double-click the awake pet to open the utility window. Reminders ring even if the app was busy with another tab, and anything that came due while Vera was closed shows up as *missed* until you dismiss it.
+- **Drag & drop:** drop files onto Vera and she "eats" them into a note. Text files are inlined; binaries and files over 1 MB are stored as a reference.
+- **Fullscreen awareness:** Vera hides while a game or fullscreen video is in front and comes back when it closes. The desktop and taskbar don't count as fullscreen.
+- **XP:** completing a task earns XP (once per task).
+- **Starts with Windows** (optional) and runs as a **single instance**.
+
+**Experimental / not wired to the UI yet:** AI-provider keys (stored in Windows Credential Manager), a consent-gated agent loop, and an MCP server registry. The agent and MCP commands are disabled in every window's capability file until a real MCP transport exists.
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18+)
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Tauri v2 CLI](https://v2.tauri.app/start/prerequisites/)
+- Windows 10/11 with [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (preinstalled on Windows 11)
+- [Node.js](https://nodejs.org/) 20+
+- [Rust](https://www.rust-lang.org/tools/install) (stable) + the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/verapet.git
-   cd verapet/TauriPetApp
-   ```
-
-2. **Install frontend dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Run the development server**
-   ```bash
-   npm run tauri:dev
-   ```
-
-### Building for Production
-To build a standalone executable for your operating system:
+### Run it
 ```bash
-npm run tauri:build
+git clone https://github.com/Taheraam/Vera-Desktop-Pet-App.git
+cd Vera-Desktop-Pet-App
+npm ci
+npm run tauri:dev
+```
+
+### Build an installer
+```bash
+npm run tauri:build      # NSIS + MSI installers in src-tauri/target/release/bundle/
+```
+
+### Checks (the same ones CI runs)
+```bash
+npm run build                                                       # tsc + vite build
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+cargo test   --manifest-path src-tauri/Cargo.toml
 ```
 
 ---
 
 ## 🛠️ Architecture
 
-VeraPet uses a dual-window architecture powered by Tauri:
-1. **The Pet Window (`index.tsx`)**: A transparent, frameless, click-through capable window running a custom Canvas 2D sprite rendering engine.
-2. **The Utility Window (`utility-window/index.tsx`)**: A standard app window for managing tasks, notes, alarms, and AI agent settings.
-3. **The Rust Backend**: Manages SQLite data persistence, background alarm scheduling loops, and native Windows OS hooks (like fullscreen detection and DPI-aware positioning).
+```
+ ┌──────────── Pet window ────────────┐      ┌────────── Utility window ──────────┐
+ │ Canvas 2D sprite renderer + FSM     │      │ Tasks · Notes · Clock · Settings    │
+ │ idle timer → set_pet_mode(asleep)   │      │ reminder banner (all tabs)          │
+ └────────────────┬────────────────────┘      └────────────────┬────────────────────┘
+                  │ 3 commands                                  │ 27 commands
+                  ▼        (per-window capability files)        ▼
+ ┌──────────────────────────────── Rust (Tauri v2) ───────────────────────────────────┐
+ │ commands/  tasks · notes · alarms · window · settings · gamification · provider     │
+ │ threads    alarm scheduler (wakes on new alarm) · fullscreen detector (Win32)       │
+ │ plugins    single-instance · global-shortcut (Alt+P) · autostart                     │
+ │ storage    SQLite (versioned migrations, PRAGMA user_version) · Credential Manager   │
+ └─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Rust owns the state.** Pet mode, tasks, notes, alarms and settings live in SQLite and change only through commands. The frontends re-render from the events Rust emits (`task-created`, `alarm-fired`, `pet-state-changed`, …).
+- **Least-privilege IPC.** `build.rs` declares every command, and each window's capability file (`src-tauri/capabilities/`) grants only what that window uses. The pet window can't read tasks or API keys.
+- **Dropped files are read by Rust** from the OS drag-drop event. No command takes a file path from JavaScript.
+- **Strict CSP**, no global `window.__TAURI__`, and API keys sent in headers, never in URLs.
 
 ---
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT. See [LICENSE](LICENSE).

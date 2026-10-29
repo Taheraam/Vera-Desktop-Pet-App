@@ -182,16 +182,33 @@ pub fn get_pet_state(app: AppHandle) -> Result<PetState, String> {
     }
 }
 
-#[tauri::command]
-pub fn set_auto_start(app: AppHandle, enabled: bool) -> Result<(), String> {
-    let conn = db::get_connection(&app)?;
+/// Register or remove the OS login item, then persist the choice.
+/// (Before this, the toggle only wrote to SQLite and never reached Windows.)
+pub(crate) fn apply_auto_start(app: &AppHandle, enabled: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let launcher = app.autolaunch();
+    if enabled { launcher.enable() } else { launcher.disable() }.map_err(|e| e.to_string())?;
+
+    let conn = db::get_connection(app)?;
     conn.execute(
         "INSERT OR REPLACE INTO app_state (key, value) VALUES ('auto_start_enabled', ?1)",
         rusqlite::params![enabled.to_string()],
     )
     .map_err(|e| e.to_string())?;
-
     Ok(())
+}
+
+#[tauri::command]
+pub fn set_auto_start(app: AppHandle, enabled: bool) -> Result<(), String> {
+    apply_auto_start(&app, enabled)
+}
+
+/// Global hotkey handler: bring the pet back and wake it where it is.
+pub(crate) fn wake_from_hotkey(app: &AppHandle) {
+    if let Some(win) = app.get_webview_window("pet") {
+        let _ = win.show();
+    }
+    let _ = do_set_pet_mode(app, PetMode::Awake);
 }
 
 #[tauri::command]

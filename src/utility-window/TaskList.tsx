@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import type { Task } from '../shared/types';
-import { listTasks, createTask, completeTask, updateTask, deleteTask, onEvent } from '../shared/ipc-client';
+import { listTasks, createTask, completeTask, reopenTask, updateTask, deleteTask, onEvent } from '../shared/ipc-client';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -72,7 +72,11 @@ export function TaskList() {
 
   const handleToggle = async (task: Task) => {
     try {
-      const updated = await completeTask(task.id);
+      // Ticking completes (XP once); unticking reopens. It used to call completeTask
+      // both ways, which re-awarded XP on every click.
+      const updated = task.completedAt === null
+        ? await completeTask(task.id)
+        : await reopenTask(task.id);
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) {
       setError(String(err));

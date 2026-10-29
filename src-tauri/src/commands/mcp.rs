@@ -17,6 +17,7 @@ pub struct McpServer {
     pub name: String,
     pub connected_at: i64,
     #[serde(skip)]
+    #[allow(dead_code)] // read once a real stdio/TCP transport is wired up
     pub config: Option<String>,
 }
 

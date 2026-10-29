@@ -13,6 +13,11 @@ const KEYRING_SERVICE: &str = "VeraPet";
 const MAX_TOOL_CALLS_PER_DELEGATION: usize = 15;
 const CONSENT_TIMEOUT_SECS: i64 = 600; // 10 minutes
 
+// Model ids live in one place so a retired model is a one-line change.
+const OPENAI_MODEL: &str = "gpt-4o";
+const ANTHROPIC_MODEL: &str = "claude-sonnet-5-5";
+const GEMINI_MODEL: &str = "gemini-flash-latest";
+
 /// Tracks pending consent requests in memory.
 struct ConsentRegistry {
     pending: HashMap<i64, PendingConsent>,
@@ -20,11 +25,10 @@ struct ConsentRegistry {
 
 struct PendingConsent {
     delegation_id: String,
-    agent_action_id: i64,
     tool_name: String,
     tool_args: Value,
-    provider: String,
     mcp_server: String,
+    requested_at: i64,
 }
 
 // ── Data types ────────────────────────────────────────────────────────────────
@@ -135,6 +139,25 @@ pub fn respond_to_consent_request(
 
     let conn = db::get_connection(&app)?;
 
+    // A consent request can't be approved hours later from a stale card.
+    if db::now() - pending.requested_at > CONSENT_TIMEOUT_SECS {
+        conn.execute(
+            "UPDATE agent_actions SET status = 'expired', resolved_at = ?1 WHERE id = ?2",
+            rusqlite::params![db::now(), agent_action_id],
+        )
+        .map_err(|e| e.to_string())?;
+        let _ = app.emit(
+            "agent-action-resolved",
+            serde_json::json!({
+                "delegationId": pending.delegation_id,
+                "agentActionId": agent_action_id,
+                "status": "expired",
+                "detail": "Consent request expired",
+            }),
+        );
+        return Err("This consent request has expired".into());
+    }
+
     if approved {
         // Execute the tool call
         let result = execute_mcp_tool(&app, &pending.mcp_server, &pending.tool_name, &pending.tool_args);
@@ -219,6 +242,7 @@ pub fn list_agent_actions(app: AppHandle, limit: Option<usize>) -> Result<Vec<Ag
 
 // ── Agent loop (async, runs in background thread) ────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 async fn run_agent_loop(
     app: AppHandle,
     delegation_id: String,
@@ -262,7 +286,16 @@ User instruction: {instruction}"#,
         serde_json::json!({ "role": "user", "content": instruction }),
     ];
 
-    let client = reqwest::Client::new();
+    let client = match crate::commands::provider::http_client() {
+        Ok(c) => c,
+        Err(e) => {
+            app.emit("delegation-completed", serde_json::json!({
+                "delegationId": delegation_id,
+                "finalMessage": format!("Agent error: {e}"),
+            })).ok();
+            return;
+        }
+    };
     let mut tool_call_count = 0;
 
     loop {
@@ -292,6 +325,14 @@ User instruction: {instruction}"#,
         if let Some(tool_calls) = extract_tool_calls(&response) {
             tool_call_count += tool_calls.len();
 
+            // The assistant turn that requested the tools must come BEFORE the tool
+            // results, or OpenAI rejects the next request.
+            messages.push(serde_json::json!({
+                "role": "assistant",
+                "content": null,
+                "tool_calls": tool_calls,
+            }));
+
             for tool_call in &tool_calls {
                 let tool_name = &tool_call["function"]["name"].as_str().unwrap_or("unknown").to_string();
                 let tool_args: Value = serde_json::from_str(
@@ -313,7 +354,7 @@ User instruction: {instruction}"#,
                 };
 
                 let action_type = tool_name.clone();
-                let target_summary = format!("{}: {}", tool_name, tool_args.to_string());
+                let target_summary = format!("{tool_name}: {tool_args}");
 
                 conn.execute(
                     "INSERT INTO agent_actions (delegation_id, task_id, provider, mcp_server, action_type, target_summary, status, created_at)
@@ -349,14 +390,13 @@ User instruction: {instruction}"#,
                     eprintln!("[agent] pausing for consent: {tool_name}");
 
                     let consenter = app.state::<Mutex<ConsentRegistry>>();
-                    let mut cr = consenter.lock().unwrap();
+                    let Ok(mut cr) = consenter.lock() else { continue };
                     cr.pending.insert(agent_action_id, PendingConsent {
                         delegation_id: delegation_id.clone(),
-                        agent_action_id,
                         tool_name: tool_name.clone(),
                         tool_args: tool_args.clone(),
-                        provider: provider.clone(),
                         mcp_server: server_name.clone(),
+                        requested_at: db::now(),
                     });
                     drop(cr);
 
@@ -375,13 +415,6 @@ User instruction: {instruction}"#,
                     }));
                 }
             }
-
-            // Add assistant message with tool calls
-            messages.push(serde_json::json!({
-                "role": "assistant",
-                "content": null,
-                "tool_calls": tool_calls,
-            }));
         } else {
             // Final text response
             let final_text = response["choices"][0]["message"]["content"]
@@ -425,7 +458,7 @@ async fn call_openai(
     let tools = format_openai_tools(mcp_servers);
 
     let mut body = serde_json::json!({
-        "model": "gpt-4o",
+        "model": OPENAI_MODEL,
         "messages": messages,
     });
 
@@ -439,10 +472,10 @@ async fn call_openai(
         .json(&body)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.without_url().to_string())?;
 
     let status = resp.status();
-    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let text = resp.text().await.map_err(|e| e.without_url().to_string())?;
 
     if !status.is_success() {
         return Err(format!("OpenAI API error ({}): {}", status, text));
@@ -484,7 +517,7 @@ async fn call_anthropic(
         .unwrap_or("");
 
     let mut body = serde_json::json!({
-        "model": "claude-3-5-sonnet-20241022",
+        "model": ANTHROPIC_MODEL,
         "max_tokens": 4096,
         "system": system_content,
         "messages": anthropic_messages,
@@ -501,10 +534,10 @@ async fn call_anthropic(
         .json(&body)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.without_url().to_string())?;
 
     let status = resp.status();
-    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let text = resp.text().await.map_err(|e| e.without_url().to_string())?;
 
     if !status.is_success() {
         return Err(format!("Anthropic API error ({}): {}", status, text));
@@ -539,20 +572,21 @@ async fn call_gemini(
         body["tools"] = serde_json::json!(tools);
     }
 
+    // Key goes in a header: reqwest errors include the URL, and URLs end up in logs.
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}",
-        api_key
+        "https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
     );
 
     let resp = client
         .post(&url)
+        .header("x-goog-api-key", api_key)
         .json(&body)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.without_url().to_string())?;
 
     let status = resp.status();
-    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let text = resp.text().await.map_err(|e| e.without_url().to_string())?;
 
     if !status.is_success() {
         return Err(format!("Gemini API error ({}): {}", status, text));
@@ -622,6 +656,9 @@ fn format_gemini_tools(mcp_servers: &[McpServerInfo]) -> Vec<Value> {
             }));
         }
     }
+    if function_declarations.is_empty() {
+        return vec![];
+    }
     vec![serde_json::json!({ "functionDeclarations": function_declarations })]
 }
 
@@ -661,21 +698,16 @@ fn get_connected_mcp_tools(app: &AppHandle) -> Vec<McpServerInfo> {
 }
 
 fn find_tool_provider(mcp_servers: &[McpServerInfo], tool_name: &str) -> (String, bool) {
-    // Tool names are formatted as "serverName_toolName"
-    if let Some(underscore_pos) = tool_name.find('_') {
-        let server_name = &tool_name[..underscore_pos];
-        let local_name = &tool_name[underscore_pos + 1..];
-
-        for server in mcp_servers {
-            if server.name == server_name {
-                for tool in &server.tools {
-                    if tool.name == local_name {
-                        return (server.name.clone(), tool.read_only_hint);
-                    }
-                }
+    // Tools are exposed to the model as "serverName_toolName". Match the full
+    // string, because server and tool names can both contain underscores.
+    for server in mcp_servers {
+        for tool in &server.tools {
+            if format!("{}_{}", server.name, tool.name) == tool_name {
+                return (server.name.clone(), tool.read_only_hint);
             }
         }
     }
+    // Unknown tools are never treated as read-only, so they always need consent.
     ("unknown".to_string(), false)
 }
 
@@ -785,4 +817,35 @@ pub fn init_registry(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> 
         pending: HashMap::new(),
     }));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn servers() -> Vec<McpServerInfo> {
+        let tool = |name: &str, ro: bool| McpToolSchema {
+            name: name.into(),
+            description: String::new(),
+            input_schema: serde_json::json!({}),
+            read_only_hint: ro,
+        };
+        vec![McpServerInfo { name: "my_server".into(), tools: vec![tool("read_file", true)] }]
+    }
+
+    #[test]
+    fn tool_lookup_handles_underscores_in_server_names() {
+        // The old first-underscore split looked for a server called "my".
+        assert_eq!(find_tool_provider(&servers(), "my_server_read_file"), ("my_server".into(), true));
+    }
+
+    #[test]
+    fn unknown_tools_require_consent() {
+        assert_eq!(find_tool_provider(&servers(), "rm_rf"), ("unknown".into(), false));
+    }
+
+    #[test]
+    fn gemini_gets_no_tools_block_when_there_are_no_tools() {
+        assert!(format_gemini_tools(&[]).is_empty());
+    }
 }

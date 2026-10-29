@@ -4,7 +4,7 @@ import { TaskList } from './TaskList';
 import { NotesEditor } from './NotesEditor';
 import { ClockPanel } from './ClockPanel';
 import { SettingsPanel } from './SettingsPanel';
-import { onEvent, respondToConsentRequest } from '../shared/ipc-client';
+import { onEvent, respondToConsentRequest, acknowledgeAlarm } from '../shared/ipc-client';
 import './utility.css';
 
 type Tab = 'tasks' | 'notes' | 'clock' | 'settings';
@@ -19,6 +19,7 @@ export function UtilityWindow() {
     mcpServer: string;
   } | null>(null);
   const [consentBusy, setConsentBusy] = useState(false);
+  const [ringing, setRinging] = useState<{ id: number; label: string } | null>(null);
 
   useEffect(() => {
     let unlisteners: UnlistenFn[] = [];
@@ -31,6 +32,15 @@ export function UtilityWindow() {
         }),
         onEvent('agent-action-resolved', () => {
           if (active) setConsent(null);
+        }),
+        // Listened for here (always mounted), not in ClockPanel, which only exists
+        // while its tab is open. The backend also brings this window to the front.
+        onEvent('alarm-fired', (p) => {
+          if (!active) return;
+          const label = p.task?.title
+            ? `${p.task.title} (${new Date(p.alarm.fireAt * 1000).toLocaleTimeString()})`
+            : new Date(p.alarm.fireAt * 1000).toLocaleString();
+          setRinging({ id: p.alarm.id, label });
         }),
       ]);
       if (active) unlisteners = fns;
@@ -55,8 +65,25 @@ export function UtilityWindow() {
     }
   };
 
+  const dismissRinging = async () => {
+    if (!ringing) return;
+    try {
+      await acknowledgeAlarm(ringing.id);
+    } catch (err) {
+      console.error('Acknowledge failed:', err);
+    }
+    setRinging(null);
+  };
+
   return (
     <div className="uw-root">
+      {ringing !== null && (
+        <div className="alarm-ringing">
+          <span>⏰ Reminder — {ringing.label}</span>
+          <button onClick={dismissRinging}>Dismiss</button>
+        </div>
+      )}
+
       {/* Consent gate card — floats above content */}
       {consent !== null && (
         <div className="consent-overlay">

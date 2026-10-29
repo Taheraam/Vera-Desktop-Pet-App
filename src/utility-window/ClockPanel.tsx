@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import type { Alarm } from '../shared/types';
 import { AlarmModal } from './AlarmModal';
-import { listAlarms, deleteAlarm, onEvent } from '../shared/ipc-client';
+import { listAlarms, deleteAlarm, onEvent, getMissedAlarmsSummary, acknowledgeAlarm } from '../shared/ipc-client';
 
 type ClockTab = 'reminder' | 'timer' | 'stopwatch';
 
@@ -12,12 +12,15 @@ export function ClockPanel() {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [missed, setMissed] = useState<Alarm[]>([]);
   const [alarmError, setAlarmError] = useState<string | null>(null);
-  const [ringing, setRinging] = useState<{ id: number; label: string } | null>(null);
 
   useEffect(() => {
     let active = true;
     listAlarms(true)
       .then((data) => { if (active) setAlarms(data); })
+      .catch(() => {});
+    // Reminders that came due while the app was closed (marked by the scheduler at boot).
+    getMissedAlarmsSummary()
+      .then((data) => { if (active) setMissed(data); })
       .catch(() => {});
     return () => { active = false; };
   }, []);
@@ -30,13 +33,10 @@ export function ClockPanel() {
     unlisteners.push(
       onEvent('alarm-created', (p) => setAlarms((prev) => [...prev, p.alarm])),
     );
+    // A fired alarm is no longer upcoming. The ringing banner lives in UtilityWindow
+    // so it shows on every tab, not only while the Clock tab happens to be open.
     unlisteners.push(
-      onEvent('alarm-fired', (p) => {
-        setRinging({
-          id: p.alarm.id,
-          label: new Date(p.alarm.fireAt * 1000).toLocaleString(),
-        });
-      }),
+      onEvent('alarm-fired', (p) => setAlarms((prev) => prev.filter((a) => a.id !== p.alarm.id))),
     );
     return () => {
       Promise.all(unlisteners).then((fns) => fns.forEach((fn) => fn()));
@@ -52,7 +52,11 @@ export function ClockPanel() {
     }
   };
 
-  const dismissMissed = () => setMissed([]);
+  const dismissMissed = async () => {
+    // Acknowledge in the DB, or the same reminders come back on the next launch.
+    await Promise.allSettled(missed.map((a) => acknowledgeAlarm(a.id)));
+    setMissed([]);
+  };
 
   const refreshAlarms = () => {
     listAlarms(true).then(setAlarms).catch(() => setAlarmError('Failed to load alarms'));
@@ -60,13 +64,6 @@ export function ClockPanel() {
 
   return (
     <div className="clock-panel">
-      {ringing !== null && (
-        <div className="alarm-ringing">
-          <span>⏰ Reminder — {ringing.label}</span>
-          <button onClick={() => setRinging(null)}>Dismiss</button>
-        </div>
-      )}
-
       <div className="clock-subtabs">
         <button className={tab === 'reminder' ? 'active' : ''} onClick={() => setTab('reminder')}>Reminder</button>
         <button className={tab === 'timer' ? 'active' : ''} onClick={() => setTab('timer')}>Timer</button>
