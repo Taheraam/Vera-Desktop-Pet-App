@@ -14,6 +14,8 @@ pub struct Alarm {
     pub acknowledged_at: Option<i64>,
 }
 
+pub const ALARM_COLUMNS: &str = "id, task_id, fire_at, fired_at, missed, acknowledged_at";
+
 pub fn row_to_alarm(row: &rusqlite::Row) -> rusqlite::Result<Alarm> {
     Ok(Alarm {
         id: row.get(0)?,
@@ -41,6 +43,9 @@ pub fn create_alarm(
     let id = conn.last_insert_rowid();
     let alarm = get_alarm_by_id(&conn, id)?;
 
+    // Without this the scheduler could be mid-way through a 60 s sleep.
+    crate::commands::alarm_scheduler::wake(&app);
+
     app.emit("alarm-created", serde_json::json!({ "alarm": &alarm }))
         .map_err(|e| e.to_string())?;
     Ok(alarm)
@@ -62,90 +67,40 @@ pub fn list_alarms(
     let conn = db::get_connection(&app)?;
     let now = db::now();
 
-    let mut stmt = if upcoming_only.unwrap_or(false) {
-        conn.prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
-             WHERE fire_at > ?1 AND fired_at IS NULL
-             ORDER BY fire_at ASC",
-        )
+    let alarms: rusqlite::Result<Vec<Alarm>> = if upcoming_only.unwrap_or(false) {
+        conn.prepare(&format!(
+            "SELECT {ALARM_COLUMNS} FROM alarms WHERE fire_at > ?1 AND fired_at IS NULL ORDER BY fire_at ASC"
+        ))
+        .and_then(|mut s| s.query_map(rusqlite::params![now], row_to_alarm)?.collect())
     } else {
-        conn.prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
-             ORDER BY fire_at ASC",
-        )
-    }
-    .map_err(|e| e.to_string())?;
+        conn.prepare(&format!("SELECT {ALARM_COLUMNS} FROM alarms ORDER BY fire_at ASC"))
+            .and_then(|mut s| s.query_map([], row_to_alarm)?.collect())
+    };
+    alarms.map_err(|e| e.to_string())
+}
 
-    let alarms = stmt
-        .query_map(rusqlite::params![now], |row| row_to_alarm(row))
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-
-    Ok(alarms)
+/// Alarms the scheduler marked as missed at startup that the user hasn't dismissed yet.
+pub fn unacknowledged_missed(conn: &rusqlite::Connection) -> rusqlite::Result<Vec<Alarm>> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {ALARM_COLUMNS} FROM alarms
+         WHERE missed = 1 AND acknowledged_at IS NULL
+         ORDER BY fire_at ASC"
+    ))?;
+    let rows = stmt.query_map([], row_to_alarm)?;
+    rows.collect()
 }
 
 #[tauri::command]
 pub fn get_missed_alarms_summary(app: AppHandle) -> Result<Vec<Alarm>, String> {
     let conn = db::get_connection(&app)?;
-
-    // Get last_alive_timestamp from app_state
-    let last_alive: String = conn
-        .query_row(
-            "SELECT value FROM app_state WHERE key = 'last_alive_timestamp'",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap_or_else(|_| db::now().to_string());
-
-    let last_alive_ts: i64 = last_alive.parse().unwrap_or(0);
-    let now = db::now();
-
-    // Find alarms that fired while the app was closed
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms
-             WHERE fire_at >= ?1 AND fire_at < ?2 AND fired_at IS NULL
-             ORDER BY fire_at ASC",
-        )
-        .map_err(|e| e.to_string())?;
-
-    let alarms = stmt
-        .query_map(rusqlite::params![last_alive_ts, now], |row| row_to_alarm(row))
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-
-    // Mark them as missed
-    for alarm in &alarms {
-        conn.execute(
-            "UPDATE alarms SET missed = 1 WHERE id = ?1",
-            rusqlite::params![alarm.id],
-        )
-        .map_err(|e| e.to_string())?;
-    }
-
-    // Update last_alive_timestamp to now
-    conn.execute(
-        "INSERT OR REPLACE INTO app_state (key, value) VALUES ('last_alive_timestamp', ?1)",
-        rusqlite::params![now.to_string()],
-    )
-    .map_err(|e| e.to_string())?;
-
-    // Emit if there are missed alarms
-    if !alarms.is_empty() {
-        app.emit("missed-alarms-ready", serde_json::json!({ "alarms": &alarms }))
-            .map_err(|e| e.to_string())?;
-    }
-
-    Ok(alarms)
+    unacknowledged_missed(&conn).map_err(|e| e.to_string())
 }
 
 fn get_alarm_by_id(conn: &rusqlite::Connection, id: i64) -> Result<Alarm, String> {
     conn.query_row(
-        "SELECT id, task_id, fire_at, fired_at, missed, acknowledged_at FROM alarms WHERE id = ?1",
+        &format!("SELECT {ALARM_COLUMNS} FROM alarms WHERE id = ?1"),
         rusqlite::params![id],
-        |row| row_to_alarm(row),
+        row_to_alarm,
     )
     .map_err(|e| e.to_string())
 }
@@ -163,4 +118,19 @@ pub fn acknowledge_alarm(app: AppHandle, id: i64) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn acknowledged_missed_alarms_stop_showing() {
+        let conn = db::test_conn();
+        conn.execute("INSERT INTO alarms (fire_at, missed, fired_at) VALUES (10, 1, 20)", []).unwrap();
+        let id = conn.last_insert_rowid();
+        assert_eq!(unacknowledged_missed(&conn).unwrap().len(), 1);
+        conn.execute("UPDATE alarms SET acknowledged_at = 30 WHERE id = ?1", [id]).unwrap();
+        assert!(unacknowledged_missed(&conn).unwrap().is_empty());
+    }
 }

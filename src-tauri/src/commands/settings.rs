@@ -29,13 +29,13 @@ impl Default for Settings {
             render_engine: "canvas".to_string(),
             hotkey: "Alt+P".to_string(),
             auto_start_enabled: false,
-            context_engine_enabled: true,
+            context_engine_enabled: false,
             greeting_message: "Hi! I'm here to help you stay on track.".to_string(),
         }
     }
 }
 
-fn read_setting(app: &AppHandle, key: &str, default: &str) -> String {
+pub(crate) fn read_setting(app: &AppHandle, key: &str, default: &str) -> String {
     let conn = match db::get_connection(app) {
         Ok(c) => c,
         Err(_) => return default.to_string(),
@@ -64,7 +64,7 @@ pub fn get_settings(app: AppHandle) -> Result<Settings, String> {
         render_engine: read_setting(&app, "render_engine", "canvas"),
         hotkey: read_setting(&app, "hotkey", "Alt+P"),
         auto_start_enabled: read_setting(&app, "auto_start_enabled", "false") == "true",
-        context_engine_enabled: read_setting(&app, "context_engine_enabled", "true") == "true",
+        context_engine_enabled: read_setting(&app, "context_engine_enabled", "false") == "true",
         greeting_message: read_setting(
             &app,
             "greeting_message",
@@ -80,10 +80,13 @@ pub fn update_settings(app: AppHandle, settings: SettingsUpdate) -> Result<Setti
         write_setting(&app, "render_engine", &v)?;
     }
     if let Some(v) = settings.hotkey {
+        // Validated here; the new shortcut is registered on next launch.
+        v.parse::<tauri_plugin_global_shortcut::Shortcut>()
+            .map_err(|e| format!("Invalid hotkey '{v}': {e}"))?;
         write_setting(&app, "hotkey", &v)?;
     }
     if let Some(v) = settings.auto_start_enabled {
-        write_setting(&app, "auto_start_enabled", &v.to_string())?;
+        crate::commands::window::apply_auto_start(&app, v)?;
     }
     if let Some(v) = settings.context_engine_enabled {
         write_setting(&app, "context_engine_enabled", &v.to_string())?;
