@@ -177,6 +177,450 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Enables the acknowledge_alarm command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-acknowledge-alarm",
+          "markdownDescription": "Enables the acknowledge_alarm command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the add_provider_key command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-add-provider-key",
+          "markdownDescription": "Enables the add_provider_key command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the complete_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-complete-task",
+          "markdownDescription": "Enables the complete_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the connect_mcp_server command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-connect-mcp-server",
+          "markdownDescription": "Enables the connect_mcp_server command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_alarm command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-alarm",
+          "markdownDescription": "Enables the create_alarm command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the create_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-task",
+          "markdownDescription": "Enables the create_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delegate_task_to_agent command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delegate-task-to-agent",
+          "markdownDescription": "Enables the delegate_task_to_agent command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_alarm command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-alarm",
+          "markdownDescription": "Enables the delete_alarm command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_note command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-note",
+          "markdownDescription": "Enables the delete_note command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the delete_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-task",
+          "markdownDescription": "Enables the delete_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the disconnect_mcp_server command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-disconnect-mcp-server",
+          "markdownDescription": "Enables the disconnect_mcp_server command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_current_context command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-current-context",
+          "markdownDescription": "Enables the get_current_context command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_missed_alarms_summary command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-missed-alarms-summary",
+          "markdownDescription": "Enables the get_missed_alarms_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_monitor_layout command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-monitor-layout",
+          "markdownDescription": "Enables the get_monitor_layout command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_permission_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-permission-status",
+          "markdownDescription": "Enables the get_permission_status command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_pet_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-pet-state",
+          "markdownDescription": "Enables the get_pet_state command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-settings",
+          "markdownDescription": "Enables the get_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_xp_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-xp-state",
+          "markdownDescription": "Enables the get_xp_state command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the ingest_dropped_content command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-ingest-dropped-content",
+          "markdownDescription": "Enables the ingest_dropped_content command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_agent_actions command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-agent-actions",
+          "markdownDescription": "Enables the list_agent_actions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_alarms command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-alarms",
+          "markdownDescription": "Enables the list_alarms command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_mcp_servers command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-mcp-servers",
+          "markdownDescription": "Enables the list_mcp_servers command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_notes command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-notes",
+          "markdownDescription": "Enables the list_notes command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_providers command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-providers",
+          "markdownDescription": "Enables the list_providers command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_tasks command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-tasks",
+          "markdownDescription": "Enables the list_tasks command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the remove_provider_key command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-remove-provider-key",
+          "markdownDescription": "Enables the remove_provider_key command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the reopen_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-reopen-task",
+          "markdownDescription": "Enables the reopen_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the request_accessibility_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-request-accessibility-permission",
+          "markdownDescription": "Enables the request_accessibility_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the respond_to_consent_request command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-respond-to-consent-request",
+          "markdownDescription": "Enables the respond_to_consent_request command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_note command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-note",
+          "markdownDescription": "Enables the save_note command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_active_provider command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-active-provider",
+          "markdownDescription": "Enables the set_active_provider command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_auto_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-auto-start",
+          "markdownDescription": "Enables the set_auto_start command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_context_engine command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-context-engine",
+          "markdownDescription": "Enables the set_context_engine command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_pet_mode command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-pet-mode",
+          "markdownDescription": "Enables the set_pet_mode command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-settings",
+          "markdownDescription": "Enables the update_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-update-task",
+          "markdownDescription": "Enables the update_task command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the verify_provider_key command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-verify-provider-key",
+          "markdownDescription": "Enables the verify_provider_key command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the acknowledge_alarm command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-acknowledge-alarm",
+          "markdownDescription": "Denies the acknowledge_alarm command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the add_provider_key command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-add-provider-key",
+          "markdownDescription": "Denies the add_provider_key command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the complete_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-complete-task",
+          "markdownDescription": "Denies the complete_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the connect_mcp_server command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-connect-mcp-server",
+          "markdownDescription": "Denies the connect_mcp_server command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_alarm command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-alarm",
+          "markdownDescription": "Denies the create_alarm command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-task",
+          "markdownDescription": "Denies the create_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delegate_task_to_agent command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delegate-task-to-agent",
+          "markdownDescription": "Denies the delegate_task_to_agent command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_alarm command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-alarm",
+          "markdownDescription": "Denies the delete_alarm command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_note command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-note",
+          "markdownDescription": "Denies the delete_note command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-task",
+          "markdownDescription": "Denies the delete_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the disconnect_mcp_server command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-disconnect-mcp-server",
+          "markdownDescription": "Denies the disconnect_mcp_server command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_current_context command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-current-context",
+          "markdownDescription": "Denies the get_current_context command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_missed_alarms_summary command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-missed-alarms-summary",
+          "markdownDescription": "Denies the get_missed_alarms_summary command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_monitor_layout command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-monitor-layout",
+          "markdownDescription": "Denies the get_monitor_layout command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_permission_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-permission-status",
+          "markdownDescription": "Denies the get_permission_status command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_pet_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-pet-state",
+          "markdownDescription": "Denies the get_pet_state command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-settings",
+          "markdownDescription": "Denies the get_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_xp_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-xp-state",
+          "markdownDescription": "Denies the get_xp_state command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the ingest_dropped_content command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-ingest-dropped-content",
+          "markdownDescription": "Denies the ingest_dropped_content command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_agent_actions command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-agent-actions",
+          "markdownDescription": "Denies the list_agent_actions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_alarms command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-alarms",
+          "markdownDescription": "Denies the list_alarms command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_mcp_servers command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-mcp-servers",
+          "markdownDescription": "Denies the list_mcp_servers command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_notes command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-notes",
+          "markdownDescription": "Denies the list_notes command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_providers command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-providers",
+          "markdownDescription": "Denies the list_providers command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_tasks command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-tasks",
+          "markdownDescription": "Denies the list_tasks command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the remove_provider_key command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-remove-provider-key",
+          "markdownDescription": "Denies the remove_provider_key command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the reopen_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-reopen-task",
+          "markdownDescription": "Denies the reopen_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the request_accessibility_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-request-accessibility-permission",
+          "markdownDescription": "Denies the request_accessibility_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the respond_to_consent_request command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-respond-to-consent-request",
+          "markdownDescription": "Denies the respond_to_consent_request command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_note command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-note",
+          "markdownDescription": "Denies the save_note command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_active_provider command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-active-provider",
+          "markdownDescription": "Denies the set_active_provider command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_auto_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-auto-start",
+          "markdownDescription": "Denies the set_auto_start command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_context_engine command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-context-engine",
+          "markdownDescription": "Denies the set_context_engine command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_pet_mode command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-pet-mode",
+          "markdownDescription": "Denies the set_pet_mode command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-settings",
+          "markdownDescription": "Denies the update_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-update-task",
+          "markdownDescription": "Denies the update_task command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the verify_provider_key command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-verify-provider-key",
+          "markdownDescription": "Denies the verify_provider_key command without any pre-configured scope."
+        },
+        {
           "description": "This permission set configures if your\napplication can enable or disable auto\nstarting the application on boot.\n\n#### Granted Permissions\n\nIt allows all to check, enable and\ndisable the automatic start on boot.\n\n\n#### This default permission set includes:\n\n- `allow-enable`\n- `allow-disable`\n- `allow-is-enabled`",
           "type": "string",
           "const": "autostart:default",
@@ -253,6 +697,12 @@
           "type": "string",
           "const": "core:app:allow-default-window-icon",
           "markdownDescription": "Enables the default_window_icon command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the exit command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:app:allow-exit",
+          "markdownDescription": "Enables the exit command without any pre-configured scope."
         },
         {
           "description": "Enables the fetch_data_store_identifiers command without any pre-configured scope.",
@@ -343,6 +793,12 @@
           "type": "string",
           "const": "core:app:deny-default-window-icon",
           "markdownDescription": "Denies the default_window_icon command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the exit command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:app:deny-exit",
+          "markdownDescription": "Denies the exit command without any pre-configured scope."
         },
         {
           "description": "Denies the fetch_data_store_identifiers command without any pre-configured scope.",
@@ -1605,6 +2061,12 @@
           "markdownDescription": "Enables the set_fullscreen command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_fullscreen_on_monitor command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:allow-set-fullscreen-on-monitor",
+          "markdownDescription": "Enables the set_fullscreen_on_monitor command without any pre-configured scope."
+        },
+        {
           "description": "Enables the set_icon command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:allow-set-icon",
@@ -2073,6 +2535,12 @@
           "markdownDescription": "Denies the set_fullscreen command without any pre-configured scope."
         },
         {
+          "description": "Denies the set_fullscreen_on_monitor command without any pre-configured scope.",
+          "type": "string",
+          "const": "core:window:deny-set-fullscreen-on-monitor",
+          "markdownDescription": "Denies the set_fullscreen_on_monitor command without any pre-configured scope."
+        },
+        {
           "description": "Denies the set_icon command without any pre-configured scope.",
           "type": "string",
           "const": "core:window:deny-set-icon",
@@ -2235,58 +2703,70 @@
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
         },
         {
-          "description": "### Default Permissions\n\nThis permission set configures what kind of\ndatabase operations are available from the sql plugin.\n\n### Granted Permissions\n\nAll reading related operations are enabled.\nAlso allows to load or close a connection.\n\n\n#### This default permission set includes:\n\n- `allow-close`\n- `allow-load`\n- `allow-select`",
+          "description": "No features are enabled by default, as we believe\nthe shortcuts can be inherently dangerous and it is\napplication specific if specific shortcuts should be\nregistered or unregistered.\n",
           "type": "string",
-          "const": "sql:default",
-          "markdownDescription": "### Default Permissions\n\nThis permission set configures what kind of\ndatabase operations are available from the sql plugin.\n\n### Granted Permissions\n\nAll reading related operations are enabled.\nAlso allows to load or close a connection.\n\n\n#### This default permission set includes:\n\n- `allow-close`\n- `allow-load`\n- `allow-select`"
+          "const": "global-shortcut:default",
+          "markdownDescription": "No features are enabled by default, as we believe\nthe shortcuts can be inherently dangerous and it is\napplication specific if specific shortcuts should be\nregistered or unregistered.\n"
         },
         {
-          "description": "Enables the close command without any pre-configured scope.",
+          "description": "Enables the is_registered command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:allow-close",
-          "markdownDescription": "Enables the close command without any pre-configured scope."
+          "const": "global-shortcut:allow-is-registered",
+          "markdownDescription": "Enables the is_registered command without any pre-configured scope."
         },
         {
-          "description": "Enables the execute command without any pre-configured scope.",
+          "description": "Enables the register command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:allow-execute",
-          "markdownDescription": "Enables the execute command without any pre-configured scope."
+          "const": "global-shortcut:allow-register",
+          "markdownDescription": "Enables the register command without any pre-configured scope."
         },
         {
-          "description": "Enables the load command without any pre-configured scope.",
+          "description": "Enables the register_all command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:allow-load",
-          "markdownDescription": "Enables the load command without any pre-configured scope."
+          "const": "global-shortcut:allow-register-all",
+          "markdownDescription": "Enables the register_all command without any pre-configured scope."
         },
         {
-          "description": "Enables the select command without any pre-configured scope.",
+          "description": "Enables the unregister command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:allow-select",
-          "markdownDescription": "Enables the select command without any pre-configured scope."
+          "const": "global-shortcut:allow-unregister",
+          "markdownDescription": "Enables the unregister command without any pre-configured scope."
         },
         {
-          "description": "Denies the close command without any pre-configured scope.",
+          "description": "Enables the unregister_all command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:deny-close",
-          "markdownDescription": "Denies the close command without any pre-configured scope."
+          "const": "global-shortcut:allow-unregister-all",
+          "markdownDescription": "Enables the unregister_all command without any pre-configured scope."
         },
         {
-          "description": "Denies the execute command without any pre-configured scope.",
+          "description": "Denies the is_registered command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:deny-execute",
-          "markdownDescription": "Denies the execute command without any pre-configured scope."
+          "const": "global-shortcut:deny-is-registered",
+          "markdownDescription": "Denies the is_registered command without any pre-configured scope."
         },
         {
-          "description": "Denies the load command without any pre-configured scope.",
+          "description": "Denies the register command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:deny-load",
-          "markdownDescription": "Denies the load command without any pre-configured scope."
+          "const": "global-shortcut:deny-register",
+          "markdownDescription": "Denies the register command without any pre-configured scope."
         },
         {
-          "description": "Denies the select command without any pre-configured scope.",
+          "description": "Denies the register_all command without any pre-configured scope.",
           "type": "string",
-          "const": "sql:deny-select",
-          "markdownDescription": "Denies the select command without any pre-configured scope."
+          "const": "global-shortcut:deny-register-all",
+          "markdownDescription": "Denies the register_all command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unregister command without any pre-configured scope.",
+          "type": "string",
+          "const": "global-shortcut:deny-unregister",
+          "markdownDescription": "Denies the unregister command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unregister_all command without any pre-configured scope.",
+          "type": "string",
+          "const": "global-shortcut:deny-unregister-all",
+          "markdownDescription": "Denies the unregister_all command without any pre-configured scope."
         }
       ]
     },
