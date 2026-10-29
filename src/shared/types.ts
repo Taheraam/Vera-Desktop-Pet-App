@@ -130,8 +130,9 @@ export interface RespondToConsentRequestParams extends Record<string, unknown> {
   agentActionId: number;
   approved: boolean;
 }
+/** Only text drops go over IPC; files are read by Rust from the OS drop event. */
 export interface IngestDroppedContentParams extends Record<string, unknown> {
-  kind: 'file' | 'text' | 'image';
+  kind: 'text';
   payload: string;
 }
 export interface AcknowledgeAlarmParams extends Record<string, unknown> {

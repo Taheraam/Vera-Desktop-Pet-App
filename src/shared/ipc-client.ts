@@ -18,6 +18,9 @@ export function updateTask(p: UpdateTaskParams): Promise<Task> {
 export function completeTask(id: number): Promise<Task> {
   return invoke('complete_task', { id });
 }
+export function reopenTask(id: number): Promise<Task> {
+  return invoke('reopen_task', { id });
+}
 export function deleteTask(id: number): Promise<void> {
   return invoke('delete_task', { id });
 }

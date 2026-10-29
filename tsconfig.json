@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["@tauri-apps/api"],
+    "types": ["@tauri-apps/api", "vite/client"],
     "noImplicitAny": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,

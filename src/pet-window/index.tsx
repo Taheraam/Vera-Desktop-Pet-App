@@ -1,11 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
-import { PetRenderer } from './canvas-renderer';
+import { getCurrentWindow, PhysicalPosition, Window } from '@tauri-apps/api/window';
+import { PetRenderer, type SpriteAssets, type SpriteSheetMeta } from './canvas-renderer';
 import { AnimationStateBridge } from './animation-state';
 import { ingestDroppedContent, setPetMode, onEvent, getSettings } from '../shared/ipc-client';
 import { GreetBubble } from './GreetBubble';
 
-const SPRITES_BASE = '/src/assets/sprites/';
+// Bundled by Vite (hashed URLs in dist/). A plain '/src/assets/...' string only
+// works on the dev server; release builds shipped without sprites.
+const SPRITE_IMAGES = import.meta.glob('../assets/sprites/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>;
+const SPRITE_META = import.meta.glob('../assets/sprites/*.json', {
+  eager: true,
+  import: 'default',
+}) as Record<string, SpriteSheetMeta>;
+const spriteAssets: SpriteAssets = {
+  imageUrl: (state) => SPRITE_IMAGES[`../assets/sprites/${state}.png`],
+  meta: (state) => SPRITE_META[`../assets/sprites/${state}.json`],
+};
+/** Logical px between the pet window's left edge and the utility window. */
+const UTILITY_OFFSET_X = 70;
 const GREETING_DURATION_MS = 5000;
 const BLINK_FRAME_INDEX = 1;
 const IDLE_PARK_TIMEOUT_MS = 10000;
@@ -32,7 +48,7 @@ export function PetWindow(): React.ReactElement {
 
     (async () => {
       try {
-        await renderer.loadSprites(SPRITES_BASE);
+        await renderer.loadSprites(spriteAssets);
         renderer.startLoop();
 
         bridge = new AnimationStateBridge(renderer);
@@ -141,20 +157,12 @@ export function PetWindow(): React.ReactElement {
     return () => { unlisten.then((fn) => fn()); };
   }, [resetIdleTimer]);
 
-  // Listen for Tauri file-drop events
+  // Drag-over outline only. Dropped FILES are read by the Rust backend straight
+  // from the OS event (main.rs on_window_event), never from a path sent by JS.
   useEffect(() => {
     const win = getCurrentWindow();
-    const unlistenPromise = win.onDragDropEvent(async (event) => {
-      if (event.payload.type === 'drop' && event.payload.paths.length > 0) {
-        for (const path of event.payload.paths) {
-          try {
-            await ingestDroppedContent({ kind: 'file', payload: path });
-          } catch (err) {
-            console.error('Failed to ingest dropped file:', err);
-          }
-        }
-      }
-      setDragOver(event.payload.type === 'over' || event.payload.type === 'drop');
+    const unlistenPromise = win.onDragDropEvent((event) => {
+      setDragOver(event.payload.type === 'enter' || event.payload.type === 'over');
       resetIdleTimer();
     });
     return () => { unlistenPromise.then((fn) => fn()); };
@@ -194,13 +202,18 @@ export function PetWindow(): React.ReactElement {
         // onWake callback in bridge already triggers greet bubble
       } else if (petMode === 'awake') {
         // Open utility window adjacent to pet's current position
+        // outerPosition() is PHYSICAL pixels. Mixing it into a LogicalPosition put
+        // the utility window 1.5x too far right at 150% scaling, often off-screen.
         const win = getCurrentWindow();
         const pos = await win.outerPosition();
-        const { Window } = await import('@tauri-apps/api/window');
+        const scale = await win.scaleFactor();
         const utilityWin = await Window.getByLabel('utility');
         if (utilityWin) {
-          await utilityWin.setPosition(new LogicalPosition(pos.x + 70, pos.y));
+          await utilityWin.setPosition(
+            new PhysicalPosition(pos.x + Math.round(UTILITY_OFFSET_X * scale), pos.y),
+          );
           await utilityWin.show();
+          await utilityWin.unminimize();
           await utilityWin.setFocus();
         }
       }

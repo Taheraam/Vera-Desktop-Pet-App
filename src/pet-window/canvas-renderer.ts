@@ -22,6 +22,12 @@ const THROTTLE_FPS: Record<string, number> = {
   eating: 10,
 };
 
+/** Where the renderer gets each state's sprite sheet and its metadata. */
+export interface SpriteAssets {
+  imageUrl(state: AnimationState): string | undefined;
+  meta(state: AnimationState): SpriteSheetMeta | undefined;
+}
+
 interface SpriteSheetData {
   image: HTMLImageElement;
   meta: SpriteSheetMeta;
@@ -113,13 +119,17 @@ export class PetRenderer {
     this.render();
   }
 
-  async loadSprites(basePath: string): Promise<void> {
+  /**
+   * Load every sprite sheet from assets Vite bundled at build time (see
+   * spriteAssets in index.tsx), so release builds ship the sprites too.
+   */
+  async loadSprites(assets: SpriteAssets): Promise<void> {
     const results = await Promise.allSettled(
       ALL_STATES.map(async (state) => {
-        const [meta, image] = await Promise.all([
-          this.fetchJSON<SpriteSheetMeta>(`${basePath}${state}.json`),
-          this.loadImage(`${basePath}${state}.png`),
-        ]);
+        const meta = assets.meta(state);
+        const url = assets.imageUrl(state);
+        if (!meta || !url) throw new Error(`Sprite not bundled: ${state}`);
+        const image = await this.loadImage(url);
         this.sprites.set(state, { image, meta });
       }),
     );
@@ -237,12 +247,6 @@ export class PetRenderer {
   }
 
   // ── private helpers ──
-
-  private async fetchJSON<T>(url: string): Promise<T> {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Failed to load ${url}: ${resp.status}`);
-    return resp.json() as Promise<T>;
-  }
 
   private loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
