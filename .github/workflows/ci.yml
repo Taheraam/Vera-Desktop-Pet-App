@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    # Vera is a Windows app: this is the only place the Win32 code (fullscreen
+    # detection, window titles) actually gets compiled and tested.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck + build frontend
+        run: npm run build   # tsc && vite build → dist/ (needed by tauri::generate_context!)
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Dependency audit (frontend)
+        run: npm audit --omit=dev --audit-level=high
