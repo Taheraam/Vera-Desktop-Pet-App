@@ -3,9 +3,6 @@ node_modules/
 .dist
 .cache
 
-# Dependencies
-package-lock.json
-
 # Environment variables
 .env
 dotenv*.local
@@ -70,3 +67,10 @@ OpenCode_CLI_Build_Guide.md
 # Rust build artifacts
 src-tauri/target/
 src-tauri/target_bak/
+
+# Security-scan output (e.g. SupplyGuard) and local databases
+results.sarif
+bom.json
+*.db
+*.db-shm
+*.db-wal
